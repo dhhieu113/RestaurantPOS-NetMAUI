@@ -22,7 +22,7 @@ jobs:
           - platform: ios
             runs-on: macos-latest
             target-framework: net8.0-ios
-            build-args: /p:CreatePackage=true
+            build-args: /p:CreatePackage=true /p:EnableAssemblyILStripping=false /p:MtouchLink=None /p:UseInterpreter=true
             artifact-name: ios-app
             artifact-path: '**/*.app'
           - platform: windows
@@ -43,6 +43,23 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Cache .NET workloads (iOS only)
+        if: matrix.platform == 'ios'
+        uses: actions/cache@v4
+        with:
+          path: ~/.dotnet
+          key: ${{ runner.os }}-dotnet-workloads-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-dotnet-workloads-
+
       - name: Setup Java JDK (Android only)
         if: matrix.platform == 'android'
         uses: actions/setup-java@v4
@@ -56,6 +73,14 @@ jobs:
         with:
           xcode-version: latest-stable
 
+      - name: Setup iOS build optimization (iOS only)
+        if: matrix.platform == 'ios'
+        run: |
+          # Set environment variables to speed up iOS builds
+          echo "DOTNET_CLI_TELEMETRY_OPTOUT=1" >> $GITHUB_ENV
+          echo "DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1" >> $GITHUB_ENV
+          echo "DOTNET_NOLOGO=1" >> $GITHUB_ENV
+
       - name: Install MAUI workload
         run: dotnet workload install maui
 
@@ -63,7 +88,15 @@ jobs:
         run: dotnet restore RestaurantPOS.sln
 
       - name: Build ${{ matrix.platform }}
-        run: dotnet build RestaurantPOS.sln -c Release -f ${{ matrix.target-framework }} ${{ matrix.build-args }}
+        run: |
+          if [ "${{ matrix.platform }}" = "ios" ]; then
+            # iOS optimized build with parallel processing and reduced linking
+            dotnet build RestaurantPOS.sln -c Release -f ${{ matrix.target-framework }} ${{ matrix.build-args }} --verbosity minimal -maxcpucount
+          else
+            # Standard build for other platforms
+            dotnet build RestaurantPOS.sln -c Release -f ${{ matrix.target-framework }} ${{ matrix.build-args }}
+          fi
+        shell: bash
 
       - name: Publish desktop app (Windows only)
         if: matrix.platform == 'windows'
