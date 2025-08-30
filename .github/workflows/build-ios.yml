@@ -30,8 +30,8 @@ jobs:
         with:
           xcode-version: latest-stable
 
-      - name: Install MAUI workload
-        run: dotnet workload install maui
+      - name: Install MAUI workload for iOS
+        run: dotnet workload install maui-ios
 
       - name: Restore dependencies
         run: dotnet restore RestaurantPOS.sln
