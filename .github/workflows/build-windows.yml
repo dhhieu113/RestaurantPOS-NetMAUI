@@ -23,13 +23,36 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
+      # Cache .NET MAUI workloads to avoid reinstalling on each build
+      - name: Cache .NET MAUI workloads
+        id: cache-workloads
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.dotnet/workloads
+            ~/.dotnet/install-records
+            ~/.dotnet/sdk-advertising
+          key: ${{ runner.os }}-maui-windows-workloads-${{ hashFiles('**/*.csproj') }}
+          restore-keys: ${{ runner.os }}-maui-windows-workloads-
+
+      # Only install workloads if cache miss
       - name: Install Windows MAUI workloads
+        if: steps.cache-workloads.outputs.cache-hit != 'true'
         run: |
           dotnet workload install maui-windows --ignore-failed-sources
           dotnet workload list
 
+      # Always run workload restore which will use cache if available
       - name: Workload restore
         run: dotnet workload restore --ignore-failed-sources
+
+      # Cache NuGet packages to speed up builds
+      - name: Cache NuGet packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: ${{ runner.os }}-nuget-
 
       - name: Restore dependencies
         run: dotnet restore RestaurantPOS.sln
