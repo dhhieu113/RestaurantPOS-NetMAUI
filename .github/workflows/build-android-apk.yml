@@ -1,4 +1,4 @@
-name: Build .NET MAUI Android APK & iOS
+name: Build .NET MAUI Cross-Platform
 
 on:
   push:
@@ -25,6 +25,12 @@ jobs:
             build-args: /p:CreatePackage=true
             artifact-name: ios-app
             artifact-path: '**/*.app'
+          - platform: linux
+            runs-on: ubuntu-latest
+            target-framework: net8.0
+            build-args: --no-restore
+            artifact-name: linux-build
+            artifact-path: '**/bin/Release/net8.0/**'
     
     runs-on: ${{ matrix.runs-on }}
     
@@ -50,8 +56,20 @@ jobs:
         with:
           xcode-version: latest-stable
 
+      - name: Setup Linux dependencies (Linux only)
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libc6-dev libgdiplus libx11-dev
+
       - name: Install MAUI workload
-        run: dotnet workload install maui
+        run: |
+          if ("${{ matrix.platform }}" -eq "linux") {
+            dotnet workload install maui --skip-sign-check || echo "MAUI workload installation failed on Linux, continuing..."
+          } else {
+            dotnet workload install maui
+          }
+        shell: pwsh
 
       - name: Restore dependencies
         run: dotnet restore RestaurantPOS.sln
@@ -64,8 +82,10 @@ jobs:
         run: |
           if ("${{ matrix.platform }}" -eq "android") {
             Get-ChildItem -Path . -Filter "*.apk" -Recurse | Select-Object FullName
-          } else {
+          } elseif ("${{ matrix.platform }}" -eq "ios") {
             Get-ChildItem -Path . -Filter "*.app" -Recurse | Select-Object FullName
+          } else {
+            Get-ChildItem -Path . -Name "bin" -Recurse | Select-Object FullName
           }
 
       - name: Upload ${{ matrix.platform }} artifact
