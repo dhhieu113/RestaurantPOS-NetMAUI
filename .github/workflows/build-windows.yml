@@ -30,11 +30,11 @@ jobs:
         run: dotnet restore RestaurantPOS.sln
         
       - name: Build Windows
-        run: dotnet build RestaurantPOS.sln -c Release -f net8.0-windows10.0.19041.0 /p:WindowsPackageType=None /p:UseMauiAndroid=false /p:UseMauiIOS=false /p:UseMauiMacCatalyst=false
+        run: dotnet build RestaurantPOS.sln -c Release -f net8.0-windows10.0.19041.0 /p:WindowsPackageType=None /p:UseMauiAndroid=false /p:UseMauiIOS=false /p:UseMauiMacCatalyst=false /p:WindowsAppSDKSelfContained=false /p:UseRidGraph=true
 
       - name: Publish desktop app
         run: |
-          dotnet publish RestaurantPOS.csproj -c Release -f net8.0-windows10.0.19041.0 -o ./publish/windows --self-contained true /p:UseMauiAndroid=false /p:UseMauiIOS=false /p:UseMauiMacCatalyst=false
+          dotnet publish RestaurantPOS.csproj -c Release -f net8.0-windows10.0.19041.0 -o ./publish/windows --self-contained true /p:UseMauiAndroid=false /p:UseMauiIOS=false /p:UseMauiMacCatalyst=false /p:WindowsAppSDKSelfContained=false /p:UseRidGraph=true
         shell: bash
 
       - name: Test desktop app
@@ -83,6 +83,26 @@ jobs:
           echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "Generated tag: $TAG"
 
+      - name: Copy installation script
+        run: |
+          cp ./install-windows-dependencies.ps1 ./artifacts/windows-app/
+
+      - name: Create README for Windows
+        run: |
+          cat > ./artifacts/windows-app/README.txt << 'EOF'
+          RestaurantPOS Windows Application
+          ================================
+
+          Installation Instructions:
+          1. Extract all files to a folder on your Windows machine
+          2. Right-click on "install-windows-dependencies.ps1" and select "Run with PowerShell"
+          3. Follow the prompts to install the required Windows App Runtime components
+          4. After successful installation, run RestaurantPOS.exe
+
+          Note: Windows App Runtime is required for this application to run properly.
+          The installation script will help you install this dependency automatically.
+          EOF
+
       - name: Create Windows executable archive
         id: find-windows
         run: |
@@ -108,10 +128,13 @@ jobs:
             **Commit:** ${{ github.sha }}
             
             ### Included Platform:
-            - 🪟 **Windows Desktop** - Self-contained Windows application
+            - 🪟 **Windows Desktop** - Windows application with dependency installer
             
             ### Installation:
-            - Extract tar.gz and run the executable
+            1. Extract all files from the tar.gz archive
+            2. Right-click on "install-windows-dependencies.ps1" and select "Run with PowerShell"
+            3. Follow the prompts to install the Windows App Runtime components
+            4. After successful installation, run RestaurantPOS.exe
             
             Built automatically from commit ${{ github.sha }}
           files: |

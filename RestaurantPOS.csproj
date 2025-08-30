@@ -7,6 +7,11 @@
 		<UseMauiMacCatalyst Condition="'$(UseMauiMacCatalyst)' == ''">true</UseMauiMacCatalyst>
 		<UseMauiWindows Condition="'$(UseMauiWindows)' == '' and $([MSBuild]::IsOSPlatform('windows'))">true</UseMauiWindows>
 		
+		<!-- Windows App SDK configuration -->
+		<WindowsAppSDKSelfContained Condition="'$(WindowsAppSDKSelfContained)' == ''">true</WindowsAppSDKSelfContained>
+		<EnableMsixTooling Condition="'$(EnableMsixTooling)' == ''">true</EnableMsixTooling>
+		<WindowsPackageType Condition="'$(WindowsPackageType)' == ''">None</WindowsPackageType>
+		
 		<!-- Build the TargetFrameworks property based on the platform properties -->
 		<TargetFrameworks></TargetFrameworks>
 		<TargetFrameworks Condition="'$(UseMauiAndroid)' == 'true'">$(TargetFrameworks);net8.0-android</TargetFrameworks>

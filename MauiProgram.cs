@@ -3,6 +3,9 @@ using Microsoft.Extensions.Logging;
 using RestaurantPOS.Data;
 using RestaurantPOS.Pages;
 using RestaurantPOS.ViewModels;
+#if WINDOWS
+using RestaurantPOS.Platforms.Windows;
+#endif
 
 namespace RestaurantPOS
 {
@@ -22,6 +25,11 @@ namespace RestaurantPOS
 
 #if DEBUG
             builder.Logging.AddDebug();
+#endif
+
+#if WINDOWS
+            // Initialize Windows-specific configuration
+            WindowsInitializer.Initialize(builder);
 #endif
 
             builder.Services
