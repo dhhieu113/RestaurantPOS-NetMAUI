@@ -29,8 +29,15 @@ jobs:
           distribution: 'microsoft'
           java-version: '11'
 
-      - name: Install MAUI workload (Android only)
-        run: dotnet workload install maui-android
+      - name: Install MAUI workloads
+        run: |
+          dotnet workload install maui --ignore-failed-sources
+          dotnet workload install android --ignore-failed-sources
+          dotnet workload install maui-android --ignore-failed-sources
+          dotnet workload list
+
+      - name: Workload restore
+        run: dotnet workload restore --ignore-failed-sources
 
       - name: Restore dependencies
         run: dotnet restore RestaurantPOS.sln

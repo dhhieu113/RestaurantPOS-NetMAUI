@@ -23,8 +23,15 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Install MAUI workload (Windows only)
-        run: dotnet workload install maui-windows
+      - name: Install MAUI workloads
+        run: |
+          dotnet workload install maui --ignore-failed-sources
+          dotnet workload install windows --ignore-failed-sources
+          dotnet workload install maui-windows --ignore-failed-sources
+          dotnet workload list
+
+      - name: Workload restore
+        run: dotnet workload restore --ignore-failed-sources
 
       - name: Restore dependencies
         run: dotnet restore RestaurantPOS.sln
@@ -34,7 +41,7 @@ jobs:
 
       - name: Publish desktop app
         run: |
-          dotnet publish RestaurantPOS.csproj -c Release -f net8.0-windows10.0.19041.0 -o ./publish/windows --self-contained true /p:UseMauiAndroid=false /p:UseMauiIOS=false /p:UseMauiMacCatalyst=false /p:WindowsAppSDKSelfContained=false /p:UseRidGraph=true
+          dotnet publish RestaurantPOS.csproj -c Release -f net8.0-windows10.0.19041.0 -o ./publish/windows --self-contained true -p:UseMauiAndroid=false -p:UseMauiIOS=false -p:UseMauiMacCatalyst=false -p:WindowsAppSDKSelfContained=false -p:UseRidGraph=true
         shell: bash
 
       - name: Test desktop app
