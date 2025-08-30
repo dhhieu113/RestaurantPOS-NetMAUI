@@ -98,6 +98,8 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     
     steps:
       - name: Checkout repository
@@ -120,14 +122,52 @@ jobs:
           echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "Generated tag: $TAG"
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Find and prepare Android APK
+        id: find-apk
+        run: |
+          APK_FILE=$(find ./artifacts/android-apk -name "*.apk" | head -1)
+          if [ -n "$APK_FILE" ]; then
+            cp "$APK_FILE" ./RestaurantPOS.apk
+            echo "apk_found=true" >> $GITHUB_OUTPUT
+            echo "Found APK: $APK_FILE"
+          else
+            echo "apk_found=false" >> $GITHUB_OUTPUT
+            echo "No APK file found"
+          fi
+
+      - name: Find and prepare iOS App
+        id: find-ios
+        run: |
+          APP_DIR=$(find ./artifacts/ios-app -name "*.app" -type d | head -1)
+          if [ -n "$APP_DIR" ]; then
+            cd "$(dirname "$APP_DIR")"
+            tar -czf ../RestaurantPOS-iOS.tar.gz "$(basename "$APP_DIR")"
+            mv ../RestaurantPOS-iOS.tar.gz "$GITHUB_WORKSPACE/"
+            echo "ios_found=true" >> $GITHUB_OUTPUT
+            echo "Found iOS App: $APP_DIR"
+          else
+            echo "ios_found=false" >> $GITHUB_OUTPUT
+            echo "No iOS app found"
+          fi
+
+      - name: Create Windows executable archive
+        id: find-windows
+        run: |
+          if [ -d "./artifacts/windows-app" ]; then
+            cd ./artifacts/windows-app
+            tar -czf "$GITHUB_WORKSPACE/RestaurantPOS-Windows.tar.gz" *
+            echo "windows_found=true" >> $GITHUB_OUTPUT
+            echo "Windows app archived"
+          else
+            echo "windows_found=false" >> $GITHUB_OUTPUT
+            echo "No Windows app found"
+          fi
+
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
-          release_name: RestaurantPOS ${{ steps.tag.outputs.tag }}
+          name: RestaurantPOS ${{ steps.tag.outputs.tag }}
           body: |
             ## RestaurantPOS Multi-Platform Release
             
@@ -145,75 +185,11 @@ jobs:
             - **Windows**: Extract tar.gz and run the executable
             
             Built automatically from commit ${{ github.sha }}
+          files: |
+            RestaurantPOS.apk
+            RestaurantPOS-iOS.tar.gz
+            RestaurantPOS-Windows.tar.gz
           draft: false
           prerelease: false
-
-      - name: Find and upload Android APK
-        id: find-apk
-        run: |
-          APK_FILE=$(find ./artifacts/android-apk -name "*.apk" | head -1)
-          if [ -n "$APK_FILE" ]; then
-            echo "apk_path=$APK_FILE" >> $GITHUB_OUTPUT
-            echo "Found APK: $APK_FILE"
-          else
-            echo "No APK file found"
-          fi
-
-      - name: Upload Android APK
-        if: steps.find-apk.outputs.apk_path
-        uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.find-apk.outputs.apk_path }}
-          asset_name: RestaurantPOS.apk
-          asset_content_type: application/vnd.android.package-archive
-
-      - name: Find and upload iOS App
-        id: find-ios
-        run: |
-          APP_DIR=$(find ./artifacts/ios-app -name "*.app" -type d | head -1)
-          if [ -n "$APP_DIR" ]; then
-            # Create a tar.gz for iOS app directory
-            cd "$(dirname "$APP_DIR")"
-            tar -czf RestaurantPOS-iOS.tar.gz "$(basename "$APP_DIR")"
-            echo "ios_path=$(pwd)/RestaurantPOS-iOS.tar.gz" >> $GITHUB_OUTPUT
-            echo "Found iOS App: $APP_DIR"
-          else
-            echo "No iOS app found"
-          fi
-
-      - name: Upload iOS App
-        if: steps.find-ios.outputs.ios_path
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.find-ios.outputs.ios_path }}
-          asset_name: RestaurantPOS-iOS.tar.gz
-          asset_content_type: application/gzip
-
-      - name: Create Windows executable archive
-        id: find-windows
-        run: |
-          if [ -d "./artifacts/windows-app" ]; then
-            cd ./artifacts/windows-app
-            tar -czf ../RestaurantPOS-Windows.tar.gz *
-            echo "windows_path=./artifacts/RestaurantPOS-Windows.tar.gz" >> $GITHUB_OUTPUT
-            echo "Windows app archived"
-          else
-            echo "No Windows app found"
-          fi
-
-      - name: Upload Windows App
-        if: steps.find-windows.outputs.windows_path
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.find-windows.outputs.windows_path }}
-          asset_name: RestaurantPOS-Windows.tar.gz
-          asset_content_type: application/gzip
