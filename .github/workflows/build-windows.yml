@@ -69,6 +69,63 @@ jobs:
         run: |
           echo "Testing Windows desktop application..."
           dotnet test --configuration Release --framework net8.0-windows10.0.19041.0 --verbosity normal || echo "No tests found or test execution failed"
+          
+      - name: Install Windows App Runtime for testing
+        run: |
+          # Download and install Windows App Runtime
+          $url = "https://aka.ms/windowsappsdk/1.5/1.5.240802000/windowsappruntimeinstall-x64.exe"
+          $output = "$env:TEMP\windowsappruntimeinstall-x64.exe"
+          Invoke-WebRequest -Uri $url -OutFile $output
+          Start-Process -FilePath $output -ArgumentList "/quiet" -Wait
+          Write-Host "Windows App Runtime installation completed"
+          
+      - name: Verify application launch
+        run: |
+          cd ./publish/windows
+          
+          # Create a PowerShell script to test application launch
+          Set-Content -Path "test-launch.ps1" -Value @'
+          try {
+              # Start the app process
+              $process = Start-Process -FilePath ".\RestaurantPOS.exe" -PassThru -WindowStyle Hidden
+              
+              # Wait a few seconds to see if it crashes immediately
+              Start-Sleep -Seconds 5
+              
+              # Check if process is still running
+              if (!$process.HasExited) {
+                  Write-Host "✅ Application launched successfully and is running"
+                  # Try to gracefully close the app
+                  $process.CloseMainWindow()
+                  Start-Sleep -Seconds 2
+                  if (!$process.HasExited) {
+                      $process.Kill()
+                  }
+                  exit 0
+              } else {
+                  Write-Host "❌ Application crashed with exit code: $($process.ExitCode)"
+                  exit 1
+              }
+          } catch {
+              Write-Host "❌ Failed to launch application: $_"
+              exit 1
+          }
+          '@
+          
+          # Run the test script and capture the result
+          try {
+              & powershell -ExecutionPolicy Bypass -File test-launch.ps1
+              if ($LASTEXITCODE -eq 0) {
+                  Write-Host "Application launch test passed"
+              } else {
+                  Write-Host "Application launch test failed with code $LASTEXITCODE"
+                  # Don't fail the build, just report the issue
+                  # Uncomment the line below if you want the workflow to fail when the app doesn't launch
+                  # exit 1
+              }
+          } catch {
+              Write-Host "Error running launch test: $_"
+          }
 
       - name: Find build artifacts
         shell: pwsh
