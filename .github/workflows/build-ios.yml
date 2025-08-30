@@ -1,0 +1,118 @@
+name: Build .NET MAUI (iOS)
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  # Optional: Allow manual triggering from GitHub Actions UI
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Install MAUI workload
+        run: dotnet workload install maui
+
+      - name: Restore dependencies
+        run: dotnet restore RestaurantPOS.sln
+
+      - name: Build iOS
+        run: dotnet build RestaurantPOS.sln -c Release -f net8.0-ios /p:CreatePackage=true
+          
+      - name: Find iOS artifacts
+        run: |
+          find . -name "*.app" -type d
+        shell: bash
+
+      - name: Upload iOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-app
+          path: '**/*.app'
+          retention-days: 7
+
+  # This job creates a release with the iOS artifacts if needed
+  release-ios:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build-ios
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Download iOS artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ios-app
+          path: ./ios-app
+
+      - name: List iOS artifacts
+        run: find ./ios-app -type f | sort
+
+      - name: Package iOS App
+        id: package-ios
+        run: |
+          APP_DIR=$(find ./ios-app -name "*.app" -type d | head -1)
+          if [ -n "$APP_DIR" ]; then
+            cd "$(dirname "$APP_DIR")"
+            tar -czf ../RestaurantPOS-iOS.tar.gz "$(basename "$APP_DIR")"
+            mv ../RestaurantPOS-iOS.tar.gz "$GITHUB_WORKSPACE/"
+            echo "ios_found=true" >> $GITHUB_OUTPUT
+            echo "Found and packaged iOS App: $APP_DIR"
+          else
+            echo "ios_found=false" >> $GITHUB_OUTPUT
+            echo "No iOS app found"
+          fi
+
+      - name: Generate release tag
+        id: tag
+        run: |
+          TAG="ios-v$(date +'%Y.%m.%d')-$(echo $GITHUB_SHA | cut -c1-7)"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "Generated tag: $TAG"
+      
+      # Only create a release if the iOS app was found
+      - name: Create iOS Release
+        if: steps.package-ios.outputs.ios_found == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: RestaurantPOS iOS ${{ steps.tag.outputs.tag }}
+          body: |
+            ## RestaurantPOS iOS Release
+            
+            **Build Date:** $(date +'%Y-%m-%d %H:%M:%S UTC')
+            **Commit:** ${{ github.sha }}
+            
+            ### iOS App
+            - 🍎 **iOS App** - iOS application bundle (requires signing)
+            
+            ### Installation:
+            - Extract tar.gz and use Xcode for installation and signing
+            
+            Built automatically from commit ${{ github.sha }}
+          files: RestaurantPOS-iOS.tar.gz
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

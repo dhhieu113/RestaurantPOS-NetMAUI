@@ -1,4 +1,4 @@
-name: Build .NET MAUI (Multi-Platform)
+name: Build .NET MAUI (Android & Windows)
 
 on:
   push:
@@ -7,6 +7,8 @@ on:
   pull_request:
     branches:
       - main
+  # Optional: Allow manual triggering from GitHub Actions UI
+  workflow_dispatch:
 
 jobs:
   build:
@@ -19,12 +21,6 @@ jobs:
             build-args: /p:AndroidPackageFormat=apk
             artifact-name: android-apk
             artifact-path: '**/*.apk'
-          - platform: ios
-            runs-on: macos-latest
-            target-framework: net8.0-ios
-            build-args: /p:CreatePackage=true
-            artifact-name: ios-app
-            artifact-path: '**/*.app'
           - platform: windows
             runs-on: windows-latest
             target-framework: net8.0-windows10.0.19041.0
@@ -49,12 +45,6 @@ jobs:
         with:
           distribution: 'microsoft'
           java-version: '11'
-
-      - name: Setup Xcode (iOS only)
-        if: matrix.platform == 'ios'
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: latest-stable
 
       - name: Install MAUI workload
         run: dotnet workload install maui
@@ -90,8 +80,6 @@ jobs:
         run: |
           if ("${{ matrix.platform }}" -eq "android") {
             Get-ChildItem -Path . -Filter "*.apk" -Recurse | Select-Object FullName
-          } elseif ("${{ matrix.platform }}" -eq "ios") {
-            Get-ChildItem -Path . -Filter "*.app" -Recurse | Select-Object FullName
           } elseif ("${{ matrix.platform }}" -eq "windows") {
             Get-ChildItem -Path "./publish/windows" -Recurse | Select-Object FullName
           }
@@ -101,6 +89,7 @@ jobs:
         with:
           name: ${{ matrix.artifact-name }}
           path: ${{ matrix.artifact-path }}
+          retention-days: 7
 
   release:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -143,21 +132,6 @@ jobs:
             echo "No APK file found"
           fi
 
-      - name: Find and prepare iOS App
-        id: find-ios
-        run: |
-          APP_DIR=$(find ./artifacts/ios-app -name "*.app" -type d | head -1)
-          if [ -n "$APP_DIR" ]; then
-            cd "$(dirname "$APP_DIR")"
-            tar -czf ../RestaurantPOS-iOS.tar.gz "$(basename "$APP_DIR")"
-            mv ../RestaurantPOS-iOS.tar.gz "$GITHUB_WORKSPACE/"
-            echo "ios_found=true" >> $GITHUB_OUTPUT
-            echo "Found iOS App: $APP_DIR"
-          else
-            echo "ios_found=false" >> $GITHUB_OUTPUT
-            echo "No iOS app found"
-          fi
-
       - name: Create Windows executable archive
         id: find-windows
         run: |
@@ -177,25 +151,22 @@ jobs:
           tag_name: ${{ steps.tag.outputs.tag }}
           name: RestaurantPOS ${{ steps.tag.outputs.tag }}
           body: |
-            ## RestaurantPOS Multi-Platform Release
+            ## RestaurantPOS Release
             
             **Build Date:** $(date +'%Y-%m-%d %H:%M:%S UTC')
             **Commit:** ${{ github.sha }}
             
             ### Included Platforms:
             - 🤖 **Android APK** - Direct APK file for installation on Android devices
-            - 🍎 **iOS App** - iOS application bundle (requires signing)
             - 🪟 **Windows Desktop** - Self-contained Windows application
             
             ### Installation:
             - **Android**: Download and install the APK file directly
-            - **iOS**: Extract tar.gz and use Xcode for installation and signing
             - **Windows**: Extract tar.gz and run the executable
             
             Built automatically from commit ${{ github.sha }}
           files: |
             RestaurantPOS.apk
-            RestaurantPOS-iOS.tar.gz
             RestaurantPOS-Windows.tar.gz
           draft: false
           prerelease: false
