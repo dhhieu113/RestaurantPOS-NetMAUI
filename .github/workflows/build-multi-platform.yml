@@ -62,6 +62,14 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore RestaurantPOS.sln
 
+      - name: Create Keystore (Android only)
+        if: matrix.platform == 'android'
+        run: |
+          echo "Generating keystore file for Android signing..."
+          $KEYTOOL_PATH = Join-Path $env:JAVA_HOME "bin/keytool.exe"
+          & $KEYTOOL_PATH -genkey -v -keystore restaurantpos.keystore -alias restaurantpos -keyalg RSA -keysize 2048 -validity 10000 -storepass restaurant123 -keypass restaurant123 -dname "CN=RestaurantPOS, O=dhhieu113, L=Unknown, ST=Unknown, C=US"
+        shell: pwsh
+        
       - name: Build ${{ matrix.platform }}
         run: dotnet build RestaurantPOS.sln -c Release -f ${{ matrix.target-framework }} ${{ matrix.build-args }}
 

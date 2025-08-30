@@ -17,6 +17,15 @@
 		<SingleProject>true</SingleProject>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
+		
+		<!-- Android Signing Properties -->
+		<AndroidKeyStore>True</AndroidKeyStore>
+		<AndroidSigningKeyStore>restaurantpos.keystore</AndroidSigningKeyStore>
+		<AndroidSigningStorePass>restaurant123</AndroidSigningStorePass>
+		<AndroidSigningKeyAlias>restaurantpos</AndroidSigningKeyAlias>
+		<AndroidSigningKeyPass>restaurant123</AndroidSigningKeyPass>
+		<!-- Enable auto-signing for debug builds -->
+		<AndroidSigningKeyStore Condition=" '$(Configuration)' == 'Debug' "></AndroidSigningKeyStore>
 
 		<!-- Display name -->
 		<ApplicationTitle>RestaurantPOS</ApplicationTitle>
