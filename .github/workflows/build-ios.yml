@@ -12,7 +12,7 @@ on:
 
 jobs:
   build-ios:
-    runs-on: macos-latest
+    runs-on: macos-14 # macOS Sonoma
     
     steps:
       - name: Checkout repository
@@ -28,15 +28,40 @@ jobs:
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: latest-stable
+          xcode-version: '15.2'
 
+      # Cache .NET MAUI workloads to avoid reinstalling on each build
+      - name: Cache .NET MAUI workloads
+        id: cache-workloads
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.dotnet/workloads
+            ~/.dotnet/install-records
+            ~/.dotnet/sdk-advertising
+            ~/Library/Caches/Xamarin
+            ~/Library/Developer/Xamarin
+          key: ${{ runner.os }}-maui-ios-workloads-${{ hashFiles('**/*.csproj') }}
+          restore-keys: ${{ runner.os }}-maui-ios-workloads-
+
+      # Only install workloads if cache miss
       - name: Install iOS MAUI workloads
+        if: steps.cache-workloads.outputs.cache-hit != 'true'
         run: |
           dotnet workload install maui-ios --ignore-failed-sources
           dotnet workload list
 
+      # Always run workload restore which will use cache if available
       - name: Workload restore
         run: dotnet workload restore --ignore-failed-sources
+
+      # Cache NuGet packages to speed up builds
+      - name: Cache NuGet packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: ${{ runner.os }}-nuget-
 
       - name: Restore dependencies
         run: dotnet restore RestaurantPOS.sln
@@ -60,7 +85,7 @@ jobs:
   release-ios:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: build-ios
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     permissions:
       contents: write
     

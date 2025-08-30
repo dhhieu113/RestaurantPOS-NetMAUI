@@ -12,7 +12,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: macos-14 # macOS Sonoma
     
     steps:
       - name: Checkout repository
@@ -26,8 +26,8 @@ jobs:
       - name: Setup Java JDK
         uses: actions/setup-java@v4
         with:
-          distribution: 'microsoft'
-          java-version: '11'
+          distribution: 'temurin' # OpenJDK distribution that works well on macOS
+          java-version: '17'      # Updated to a newer Java version for better Android tooling support
           
       # Cache .NET MAUI workloads to avoid reinstalling on each build
       - name: Cache .NET MAUI workloads
@@ -38,6 +38,8 @@ jobs:
             ~/.dotnet/workloads
             ~/.dotnet/install-records
             ~/.dotnet/sdk-advertising
+            ~/Library/Caches/Xamarin
+            ~/Library/Developer/Xamarin
           key: ${{ runner.os }}-maui-workloads-${{ hashFiles('**/*.csproj') }}
           restore-keys: ${{ runner.os }}-maui-workloads-
 
@@ -66,17 +68,16 @@ jobs:
       - name: Create Keystore
         run: |
           echo "Generating keystore file for Android signing..."
-          $KEYTOOL_PATH = Join-Path $env:JAVA_HOME "bin/keytool.exe"
-          & $KEYTOOL_PATH -genkey -v -keystore restaurantpos.keystore -alias restaurantpos -keyalg RSA -keysize 2048 -validity 10000 -storepass restaurant123 -keypass restaurant123 -dname "CN=RestaurantPOS, O=dhhieu113, L=Unknown, ST=Unknown, C=US"
-        shell: pwsh
+          keytool -genkey -v -keystore restaurantpos.keystore -alias restaurantpos -keyalg RSA -keysize 2048 -validity 10000 -storepass restaurant123 -keypass restaurant123 -dname "CN=RestaurantPOS, O=dhhieu113, L=Unknown, ST=Unknown, C=US"
+        shell: bash
         
       - name: Build Android
         run: dotnet build RestaurantPOS.sln -c Release -f net8.0-android /p:AndroidPackageFormat=apk /p:UseMauiIOS=false /p:UseMauiMacCatalyst=false /p:UseMauiWindows=false
 
       - name: Find Android APK
-        shell: pwsh
+        shell: bash
         run: |
-          Get-ChildItem -Path . -Filter "*.apk" -Recurse | Select-Object FullName
+          find . -name "*.apk" -type f
 
       - name: Upload Android artifact
         uses: actions/upload-artifact@v4
@@ -88,7 +89,7 @@ jobs:
   release:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     permissions:
       contents: write
     
