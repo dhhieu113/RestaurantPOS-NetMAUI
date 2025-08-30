@@ -1,4 +1,4 @@
-name: Build .NET MAUI Android APK
+name: Build .NET MAUI Android APK & iOS
 
 on:
   push:
@@ -10,7 +10,24 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          - platform: android
+            runs-on: windows-latest
+            target-framework: net8.0-android
+            build-args: /p:AndroidPackageFormat=apk
+            artifact-name: android-apk
+            artifact-path: '**/*.apk'
+          - platform: ios
+            runs-on: macos-latest
+            target-framework: net8.0-ios
+            build-args: /p:CreatePackage=true
+            artifact-name: ios-app
+            artifact-path: '**/*.app'
+    
+    runs-on: ${{ matrix.runs-on }}
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -20,11 +37,18 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Setup Java JDK
+      - name: Setup Java JDK (Android only)
+        if: matrix.platform == 'android'
         uses: actions/setup-java@v4
         with:
           distribution: 'microsoft'
           java-version: '11'
+
+      - name: Setup Xcode (iOS only)
+        if: matrix.platform == 'ios'
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
 
       - name: Install MAUI workload
         run: dotnet workload install maui
@@ -32,15 +56,20 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore RestaurantPOS.sln
 
-      - name: Build Android APK
-        run: dotnet build RestaurantPOS.sln -c Release -f net8.0-android /p:AndroidPackageFormat=apk
+      - name: Build ${{ matrix.platform }}
+        run: dotnet build RestaurantPOS.sln -c Release -f ${{ matrix.target-framework }} ${{ matrix.build-args }}
 
-      - name: Find APK file
+      - name: Find build artifacts
+        shell: pwsh
         run: |
-          Get-ChildItem -Path . -Filter "*.apk" -Recurse | Select-Object FullName
+          if ("${{ matrix.platform }}" -eq "android") {
+            Get-ChildItem -Path . -Filter "*.apk" -Recurse | Select-Object FullName
+          } else {
+            Get-ChildItem -Path . -Filter "*.app" -Recurse | Select-Object FullName
+          }
 
-      - name: Upload APK artifact
+      - name: Upload ${{ matrix.platform }} artifact
         uses: actions/upload-artifact@v4
         with:
-          name: android-apk
-          path: '**/*.apk'
+          name: ${{ matrix.artifact-name }}
+          path: ${{ matrix.artifact-path }}
