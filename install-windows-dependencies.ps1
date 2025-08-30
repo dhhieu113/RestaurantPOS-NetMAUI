@@ -26,70 +26,8 @@ if (-not $wingetAvailable) {
     exit
 }
 
-Write-Host "Checking if Windows App Runtime is already installed..." -ForegroundColor Yellow
-$isInstalled = $false
-try {
-    $regPaths = @(
-        "HKLM:\SOFTWARE\Microsoft\WindowsAppRuntime",
-        "HKLM:\SOFTWARE\Classes\CLSID\{8C57E4C5-3A45-4B34-BF39-056368B9D8ED}"
-    )
-    
-    $isInstalled = $true
-    foreach ($path in $regPaths) {
-        if (-not (Test-Path $path)) {
-            $isInstalled = $false
-            break
-        }
-    }
-} catch {
-    $isInstalled = $false
-}
-
-if ($isInstalled) {
-    Write-Host "Windows App Runtime appears to be already installed." -ForegroundColor Green
-    
-    # Ask user if they want to reinstall
-    $reinstall = Read-Host "Would you like to reinstall it anyway? (y/n)"
-    if ($reinstall -ne "y") {
-        Write-Host "Skipping Windows App Runtime installation." -ForegroundColor Yellow
-        $testResult = $true
-        # Skip to the end of the installation section
-    }
-}
-
-if (-not $isInstalled -or $reinstall -eq "y") {
-    Write-Host "Installing Windows App Runtime dependencies..." -ForegroundColor Green
-    try {
-        # Try winget installation first
-        winget install Microsoft.WindowsAppRuntime.1.5
-        $wingetSuccess = $?
-        
-        if (-not $wingetSuccess) {
-            Write-Host "Winget installation didn't succeed. Trying direct download..." -ForegroundColor Yellow
-            
-            # Direct download as fallback
-            $url = "https://aka.ms/windowsappsdk/1.5/1.5.240802000/windowsappruntimeinstall-x64.exe"
-            $output = "$env:TEMP\windowsappruntimeinstall-x64.exe"
-            
-            Write-Host "Downloading from $url..." -ForegroundColor Yellow
-            Invoke-WebRequest -Uri $url -OutFile $output
-            
-            Write-Host "Installing Windows App Runtime..." -ForegroundColor Yellow
-            $process = Start-Process -FilePath $output -ArgumentList "/quiet" -Wait -PassThru
-            $exitCode = $process.ExitCode
-            
-            if ($exitCode -eq 0) {
-                Write-Host "Direct installation completed successfully." -ForegroundColor Green
-            } else {
-                Write-Host "Direct installation completed with exit code: $exitCode" -ForegroundColor Yellow
-            }
-        }
-    } catch {
-        Write-Host "Error during installation: $_" -ForegroundColor Red
-        Write-Host "Please try downloading and installing Windows App Runtime manually:" -ForegroundColor Yellow
-        Write-Host "https://aka.ms/windowsappsdk/1.5/1.5.240802000/windowsappruntimeinstall-x64.exe" -ForegroundColor Cyan
-    }
-}
+Write-Host "Installing Windows App Runtime dependencies..." -ForegroundColor Green
+winget install Microsoft.WindowsAppRuntime.1.5
 
 Write-Host ""
 Write-Host "Installation complete!" -ForegroundColor Green
@@ -98,19 +36,13 @@ Write-Host "Verifying installation..." -ForegroundColor Yellow
 # Verify installation by checking if Windows App Runtime components are registered
 $testResult = $true
 try {
-    # Check for Windows App Runtime COM components and registries
-    $regPaths = @(
-        "HKLM:\SOFTWARE\Microsoft\WindowsAppRuntime",
-        "HKLM:\SOFTWARE\Classes\CLSID\{8C57E4C5-3A45-4B34-BF39-056368B9D8ED}"
-    )
-    
-    foreach ($regPath in $regPaths) {
-        if (-not (Test-Path $regPath)) {
-            Write-Host "❌ Registry path missing: $regPath" -ForegroundColor Red
-            $testResult = $false
-        } else {
-            Write-Host "✅ Registry path exists: $regPath" -ForegroundColor Green
-        }
+    # Check for Windows App Runtime COM components
+    $regPath = "HKLM:\SOFTWARE\Classes\CLSID\{8C57E4C5-3A45-4B34-BF39-056368B9D8ED}"
+    if (-not (Test-Path $regPath)) {
+        Write-Host "Windows App Runtime COM components are not registered correctly." -ForegroundColor Red
+        $testResult = $false
+    } else {
+        Write-Host "Windows App Runtime components are registered." -ForegroundColor Green
     }
 } catch {
     Write-Host "Error verifying Windows App Runtime installation: $_" -ForegroundColor Red
