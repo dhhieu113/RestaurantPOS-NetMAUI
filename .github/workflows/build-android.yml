@@ -72,7 +72,7 @@ jobs:
         shell: bash
         
       - name: Build Android
-        run: dotnet build RestaurantPOS.sln -c Release -f net8.0-android /p:AndroidPackageFormat=apk /p:UseMauiIOS=false /p:UseMauiMacCatalyst=false /p:UseMauiWindows=false /p:AndroidKeyStore=true /p:AndroidSigningKeyStore=restaurantpos.keystore /p:AndroidSigningKeyAlias=restaurantpos /p:AndroidSigningKeyPass=restaurant123 /p:AndroidSigningStorePass=restaurant123 /p:PublishTrimmed=true /p:TrimMode=partial
+        run: dotnet build RestaurantPOS.sln -c Release -f net8.0-android /p:AndroidPackageFormat=apk /p:UseMauiIOS=false /p:UseMauiMacCatalyst=false /p:UseMauiWindows=false
 
       - name: Find Android APK
         shell: bash

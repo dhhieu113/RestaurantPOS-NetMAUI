@@ -71,7 +71,7 @@ jobs:
         run: dotnet restore RestaurantPOS.sln
 
       - name: Build iOS
-        run: dotnet build RestaurantPOS.sln -c Release -f net8.0-ios /p:CreatePackage=true /p:UseMauiAndroid=false /p:UseMauiMacCatalyst=false /p:UseMauiWindows=false /p:PublishTrimmed=true
+        run: dotnet build RestaurantPOS.sln -c Release -f net8.0-ios /p:CreatePackage=true /p:UseMauiAndroid=false /p:UseMauiMacCatalyst=false /p:UseMauiWindows=false /p:MtouchLink=SdkOnly
           
       - name: Find iOS artifacts
         run: |
