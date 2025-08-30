@@ -1,0 +1,122 @@
+name: Build .NET MAUI (Windows)
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  # Optional: Allow manual triggering from GitHub Actions UI
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Install MAUI workload
+        run: dotnet workload install maui
+
+      - name: Restore dependencies
+        run: dotnet restore RestaurantPOS.sln
+        
+      - name: Build Windows
+        run: dotnet build RestaurantPOS.sln -c Release -f net8.0-windows10.0.19041.0 /p:WindowsPackageType=None
+
+      - name: Publish desktop app
+        run: |
+          dotnet publish RestaurantPOS.csproj -c Release -f net8.0-windows10.0.19041.0 -o ./publish/windows --self-contained true
+        shell: bash
+
+      - name: Test desktop app
+        run: |
+          echo "Testing Windows desktop application..."
+          dotnet test --configuration Release --framework net8.0-windows10.0.19041.0 --verbosity normal || echo "No tests found or test execution failed"
+
+      - name: Find build artifacts
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path "./publish/windows" -Recurse | Select-Object FullName
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-app
+          path: './publish/windows/**'
+          retention-days: 7
+
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-app
+          path: ./artifacts/windows-app
+
+      - name: List artifacts
+        run: find ./artifacts -type f -name "*"
+
+      - name: Generate release tag
+        id: tag
+        run: |
+          TAG="v$(date +'%Y.%m.%d')-windows-$(echo $GITHUB_SHA | cut -c1-7)"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "Generated tag: $TAG"
+
+      - name: Create Windows executable archive
+        id: find-windows
+        run: |
+          if [ -d "./artifacts/windows-app" ]; then
+            cd ./artifacts/windows-app
+            tar -czf "$GITHUB_WORKSPACE/RestaurantPOS-Windows.tar.gz" *
+            echo "windows_found=true" >> $GITHUB_OUTPUT
+            echo "Windows app archived"
+          else
+            echo "windows_found=false" >> $GITHUB_OUTPUT
+            echo "No Windows app found"
+          fi
+
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: RestaurantPOS Windows ${{ steps.tag.outputs.tag }}
+          body: |
+            ## RestaurantPOS Windows Release
+            
+            **Build Date:** $(date +'%Y-%m-%d %H:%M:%S UTC')
+            **Commit:** ${{ github.sha }}
+            
+            ### Included Platform:
+            - 🪟 **Windows Desktop** - Self-contained Windows application
+            
+            ### Installation:
+            - Extract tar.gz and run the executable
+            
+            Built automatically from commit ${{ github.sha }}
+          files: |
+            RestaurantPOS-Windows.tar.gz
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

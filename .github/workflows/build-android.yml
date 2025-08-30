@@ -1,0 +1,125 @@
+name: Build .NET MAUI (Android)
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  # Optional: Allow manual triggering from GitHub Actions UI
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'microsoft'
+          java-version: '11'
+
+      - name: Install MAUI workload
+        run: dotnet workload install maui
+
+      - name: Restore dependencies
+        run: dotnet restore RestaurantPOS.sln
+
+      - name: Create Keystore
+        run: |
+          echo "Generating keystore file for Android signing..."
+          $KEYTOOL_PATH = Join-Path $env:JAVA_HOME "bin/keytool.exe"
+          & $KEYTOOL_PATH -genkey -v -keystore restaurantpos.keystore -alias restaurantpos -keyalg RSA -keysize 2048 -validity 10000 -storepass restaurant123 -keypass restaurant123 -dname "CN=RestaurantPOS, O=dhhieu113, L=Unknown, ST=Unknown, C=US"
+        shell: pwsh
+        
+      - name: Build Android
+        run: dotnet build RestaurantPOS.sln -c Release -f net8.0-android /p:AndroidPackageFormat=apk
+
+      - name: Find Android APK
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path . -Filter "*.apk" -Recurse | Select-Object FullName
+
+      - name: Upload Android artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: '**/*.apk'
+          retention-days: 7
+
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download Android artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: android-apk
+          path: ./artifacts/android-apk
+
+      - name: List artifacts
+        run: find ./artifacts -type f -name "*"
+
+      - name: Generate release tag
+        id: tag
+        run: |
+          TAG="v$(date +'%Y.%m.%d')-android-$(echo $GITHUB_SHA | cut -c1-7)"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "Generated tag: $TAG"
+
+      - name: Find and prepare Android APK
+        id: find-apk
+        run: |
+          APK_FILE=$(find ./artifacts/android-apk -name "*.apk" | head -1)
+          if [ -n "$APK_FILE" ]; then
+            cp "$APK_FILE" ./RestaurantPOS.apk
+            echo "apk_found=true" >> $GITHUB_OUTPUT
+            echo "Found APK: $APK_FILE"
+          else
+            echo "apk_found=false" >> $GITHUB_OUTPUT
+            echo "No APK file found"
+          fi
+
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: RestaurantPOS Android ${{ steps.tag.outputs.tag }}
+          body: |
+            ## RestaurantPOS Android Release
+            
+            **Build Date:** $(date +'%Y-%m-%d %H:%M:%S UTC')
+            **Commit:** ${{ github.sha }}
+            
+            ### Included Platform:
+            - 🤖 **Android APK** - Direct APK file for installation on Android devices
+            
+            ### Installation:
+            - Download and install the APK file directly on your Android device
+            
+            Built automatically from commit ${{ github.sha }}
+          files: |
+            RestaurantPOS.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
