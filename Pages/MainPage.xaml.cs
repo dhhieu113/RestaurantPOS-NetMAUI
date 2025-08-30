@@ -7,6 +7,7 @@ namespace RestaurantPOS.Pages
     {
         private readonly HomeViewModel _homeViewModel;
         private readonly SettingsViewModel _settingsViewModel;
+        private bool _isCartVisible = false;
 
         public MainPage(HomeViewModel homeViewModel, SettingsViewModel settingsViewModel)
         {
@@ -29,6 +30,20 @@ namespace RestaurantPOS.Pages
         {
             base.OnSizeAllocated(width, height);
             await _settingsViewModel.InitializeAsync();
+            
+            // Determine if we should use mobile or desktop layout
+            // Consider mobile if width is less than 800 pixels
+            bool isMobile = width < 800;
+            
+            DesktopLayout.IsVisible = !isMobile;
+            MobileLayout.IsVisible = isMobile;
+            
+            // Reset cart visibility when switching layouts
+            if (isMobile && _isCartVisible)
+            {
+                _isCartVisible = false;
+                UpdateMobileCartVisibility();
+            }
         }
 
         private async void OnCategorySelected(Models.MenuCategoryModel category)
@@ -39,6 +54,21 @@ namespace RestaurantPOS.Pages
         private void OnItemSelected(MenuItem menuItem)
         {
             _homeViewModel.AddToCartCommand.Execute(menuItem);
+        }
+
+        private void OnCartToggleClicked(object sender, EventArgs e)
+        {
+            _isCartVisible = !_isCartVisible;
+            UpdateMobileCartVisibility();
+        }
+
+        private void UpdateMobileCartVisibility()
+        {
+            MenuContent.IsVisible = !_isCartVisible;
+            CartContent.IsVisible = _isCartVisible;
+            
+            // Update button text
+            CartToggleButton.Text = _isCartVisible ? "Back to Menu" : $"Cart ({_homeViewModel.CartItems.Count})";
         }
     }
 }

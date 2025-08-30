@@ -10,7 +10,7 @@
 		<!-- Windows App SDK configuration -->
 		<WindowsAppSDKSelfContained Condition="'$(WindowsAppSDKSelfContained)' == ''">true</WindowsAppSDKSelfContained>
 		<EnableMsixTooling Condition="'$(EnableMsixTooling)' == ''">true</EnableMsixTooling>
-		<WindowsPackageType Condition="'$(WindowsPackageType)' == ''">None</WindowsPackageType>
+		<WindowsPackageType Condition="'$(WindowsPackageType)' == ''">MSIX</WindowsPackageType>
 		
 		<!-- Build the TargetFrameworks property based on the platform properties -->
 		<TargetFrameworks></TargetFrameworks>
@@ -32,15 +32,6 @@
 		<SingleProject>true</SingleProject>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		
-		<!-- Android Signing Properties -->
-		<AndroidKeyStore>True</AndroidKeyStore>
-		<AndroidSigningKeyStore>restaurantpos.keystore</AndroidSigningKeyStore>
-		<AndroidSigningStorePass>restaurant123</AndroidSigningStorePass>
-		<AndroidSigningKeyAlias>restaurantpos</AndroidSigningKeyAlias>
-		<AndroidSigningKeyPass>restaurant123</AndroidSigningKeyPass>
-		<!-- Enable auto-signing for debug builds -->
-		<AndroidSigningKeyStore Condition=" '$(Configuration)' == 'Debug' "></AndroidSigningKeyStore>
 
 		<!-- Display name -->
 		<ApplicationTitle>RestaurantPOS</ApplicationTitle>
@@ -62,6 +53,15 @@
 		<AndroidTargetApiLevel>33</AndroidTargetApiLevel>
 		<!-- Force the compiler to use API 33 instead of the default API 34 -->
 		<TargetFrameworkVersion>v13.0</TargetFrameworkVersion>
+	</PropertyGroup>
+
+	<!-- Android Signing Properties - Only for Release builds when keystore exists -->
+	<PropertyGroup Condition="'$(Configuration)' == 'Release' AND Exists('restaurantpos.keystore')">
+		<AndroidKeyStore>True</AndroidKeyStore>
+		<AndroidSigningKeyStore>restaurantpos.keystore</AndroidSigningKeyStore>
+		<AndroidSigningStorePass>restaurant123</AndroidSigningStorePass>
+		<AndroidSigningKeyAlias>restaurantpos</AndroidSigningKeyAlias>
+		<AndroidSigningKeyPass>restaurant123</AndroidSigningKeyPass>
 	</PropertyGroup>
 
 	<ItemGroup>

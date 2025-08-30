@@ -7,9 +7,30 @@
     xmlns:pages="clr-namespace:RestaurantPOS.Pages"
     Title="Restaurant POS"
     Shell.FlyoutBackgroundColor="Wheat"
-    Shell.FlyoutBehavior="Locked"
-    Shell.FlyoutWidth="60">
+    Shell.FlyoutBehavior="Flyout"
+    Shell.FlyoutWidth="280"
+    Shell.NavBarIsVisible="True">
 
+    <!-- Flyout Header -->
+    <Shell.FlyoutHeader>
+        <Grid BackgroundColor="Maroon" HeightRequest="120" Padding="20">
+            <VerticalStackLayout VerticalOptions="Center" Spacing="5">
+                <Label 
+                    Text="Restaurant POS"
+                    FontSize="24"
+                    FontAttributes="Bold"
+                    TextColor="White"
+                    HorizontalOptions="Center" />
+                <Label 
+                    Text="Point of Sale System"
+                    FontSize="14"
+                    TextColor="LightGray"
+                    HorizontalOptions="Center" />
+            </VerticalStackLayout>
+        </Grid>
+    </Shell.FlyoutHeader>
+
+    <!-- Navigation Items -->
     <ShellContent
         Title="Home"
         ContentTemplate="{DataTemplate pages:MainPage}"
@@ -28,18 +49,36 @@
         Icon="grid.png"
         Route="ManageMenuItemPage" />
 
+    <!-- Flyout Footer -->
     <Shell.FlyoutFooter>
-        <Image
-            Margin="0,0,0,25"
-            Aspect="AspectFit"
-            HeightRequest="20"
-            HorizontalOptions="Center"
-            Source="envelope.png"
-            ToolTipProperties.Text="Support"
-            WidthRequest="20">
-            <Image.GestureRecognizers>
-                <TapGestureRecognizer Tapped="TapGestureRecognizer_Tapped" />
-            </Image.GestureRecognizers>
-        </Image>
+        <VerticalStackLayout Padding="20" Spacing="15" BackgroundColor="White">
+            <Border
+                Padding="15"
+                BackgroundColor="DarkSlateGray"
+                StrokeShape="RoundRectangle 10"
+                StrokeThickness="0">
+                <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
+                    <Image 
+                        Source="envelope.png"
+                        HeightRequest="20"
+                        WidthRequest="20"
+                        VerticalOptions="Center" />
+                    <Label
+                        Text="Support"
+                        FontAttributes="Bold"
+                        FontSize="14"
+                        TextColor="White"
+                        VerticalOptions="Center" />
+                </HorizontalStackLayout>
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="TapGestureRecognizer_Tapped" />
+                </Border.GestureRecognizers>
+            </Border>
+            <Label
+                Text="Version 1.0"
+                FontSize="12"
+                TextColor="Gray"
+                HorizontalOptions="Center" />
+        </VerticalStackLayout>
     </Shell.FlyoutFooter>
 </Shell>

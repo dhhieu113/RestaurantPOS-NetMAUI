@@ -20,10 +20,7 @@ namespace RestaurantPOS.ViewModels
 
             if (name == null)
             {
-                do
-                {
-                    name = await Shell.Current.DisplayPromptAsync("Your name", "Enter your name");
-                } while (string.IsNullOrWhiteSpace(name));
+                name = "Hello";
 
                 Preferences.Default.Set<string>(NameKey, name);
             }

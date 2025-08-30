@@ -9,16 +9,16 @@ namespace RestaurantPOS.Models
         public int Id { get; set; }
 
         [ObservableProperty]
-        private string _name;
+        private string _name = string.Empty;
 
         [ObservableProperty]
         private decimal _price;
 
         [ObservableProperty]
-        private string _icon;
+        private string _icon = string.Empty;
 
         [ObservableProperty]
-        private string _description;
+        private string _description = string.Empty;
 
         public ObservableCollection<MenuCategoryModel> Categories { get; set; } = [];
 

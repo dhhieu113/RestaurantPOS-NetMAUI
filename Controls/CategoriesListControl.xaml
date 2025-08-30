@@ -9,22 +9,23 @@
 
     <CollectionView BindingContext="{x:Reference this}" ItemsSource="{Binding Categories}">
         <CollectionView.ItemsLayout>
-            <LinearItemsLayout ItemSpacing="10" Orientation="Horizontal" />
+            <LinearItemsLayout ItemSpacing="8" Orientation="Horizontal" />
         </CollectionView.ItemsLayout>
         <CollectionView.ItemTemplate>
             <DataTemplate x:DataType="models:MenuCategoryModel">
                 <Border
-                    Padding="20,10"
+                    Padding="20,12"
                     BackgroundColor="{StaticResource LightWeat}"
-                    StrokeShape="RoundRectangle 10"
+                    StrokeShape="RoundRectangle 15"
                     StrokeThickness="0">
-                    <HorizontalStackLayout Spacing="5">
+                    <HorizontalStackLayout Spacing="8">
                         <Image
-                            HeightRequest="20"
+                            HeightRequest="24"
                             Source="{Binding Icon}"
                             VerticalOptions="Center"
-                            WidthRequest="20" />
+                            WidthRequest="24" />
                         <Label
+                            FontSize="16"
                             Text="{Binding Name}"
                             TextColor="Maroon"
                             VerticalOptions="Center">
@@ -34,6 +35,7 @@
                                     TargetType="Label"
                                     Value="True">
                                     <Setter Property="TextColor" Value="White" />
+                                    <Setter Property="FontAttributes" Value="Bold" />
                                 </DataTrigger>
                             </Label.Triggers>
                         </Label>

@@ -9,6 +9,6 @@ namespace RestaurantPOS.Data
         public DateTime OrderDate { get; set; }
         public int TotalItemsCount { get; set; }
         public decimal TotalAmountPaid { get; set; }
-        public string PaymentMode { get; set; } // Cash or Online
+        public string PaymentMode { get; set; } = string.Empty; // Cash or Online
     }
 }

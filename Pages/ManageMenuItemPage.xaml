@@ -8,83 +8,192 @@
     xmlns:models="clr-namespace:RestaurantPOS.Models"
     xmlns:vm="clr-namespace:RestaurantPOS.ViewModels"
     x:DataType="vm:ManageMenuItemsViewModel"
-    Shell.NavBarIsVisible="False">
+    Shell.NavBarIsVisible="True"
+    Title="Manage Menu">
 
+    <!-- Use responsive layout that adapts to screen size -->
+    <Grid x:Name="MainGrid">
+        <!-- Desktop layout: side-by-side -->
+        <Grid x:Name="DesktopLayout" ColumnDefinitions=".75*, .25*" IsVisible="True">
+            <Grid
+                Grid.Column="0"
+                Padding="15"
+                RowDefinitions="Auto, Auto, *"
+                RowSpacing="15">
 
-    <Grid ColumnDefinitions=".75*, .25*">
-
-        <Grid
-            Grid.Column="0"
-            Padding="15"
-            RowDefinitions="Auto, Auto, *"
-            RowSpacing="15">
-
-            <Label
-                Grid.Row="0"
-                FontAttributes="Bold"
-                FontSize="22"
-                Text="Manage Menu Items" />
-
-            <controls:CategoriesListControl
-                Grid.Row="1"
-                Categories="{Binding Categories}"
-                OnCategorySelected="OnCategorySelected" />
-
-            <Grid Grid.Row="2">
-
-                <controls:MenuItemsListControl
-                    IsEditingMode="True"
-                    Items="{Binding MenuItems}"
-                    OnItemSelected="OnItemSelected" />
-
-                <BoxView
-                    HorizontalOptions="Fill"
-                    IsVisible="{Binding IsLoading}"
-                    Opacity="0.5"
-                    VerticalOptions="Fill"
-                    Color="{StaticResource LightWeat}" />
-
-                <ActivityIndicator
-                    HeightRequest="25"
-                    HorizontalOptions="Center"
-                    IsRunning="{Binding IsLoading}"
-                    VerticalOptions="Center"
-                    WidthRequest="25"
-                    Color="Maroon" />
-            </Grid>
-
-        </Grid>
-
-        <Grid
-            Grid.Column="1"
-            Padding="0,10"
-            BackgroundColor="{StaticResource LightWeat}"
-            RowDefinitions="Auto, *">
-            <VerticalStackLayout Grid.Row="0" Spacing="5">
-                <controls:CurrentDateTimeControl />
                 <Label
+                    Grid.Row="0"
                     FontAttributes="Bold"
-                    FontSize="25"
-                    HorizontalOptions="Center"
-                    Text="Save Menu Item"
-                    TextColor="Black" />
-            </VerticalStackLayout>
+                    FontSize="22"
+                    Text="Manage Menu Items" />
+
+                <controls:CategoriesListControl
+                    Grid.Row="1"
+                    Categories="{Binding Categories}"
+                    OnCategorySelected="OnCategorySelected" />
+
+                <Grid Grid.Row="2">
+                    <controls:MenuItemsListControl
+                        IsEditingMode="True"
+                        Items="{Binding MenuItems}"
+                        OnItemSelected="OnItemSelected" />
+
+                    <BoxView
+                        HorizontalOptions="Fill"
+                        IsVisible="{Binding IsLoading}"
+                        Opacity="0.5"
+                        VerticalOptions="Fill"
+                        Color="{StaticResource LightWeat}" />
+
+                    <ActivityIndicator
+                        HeightRequest="25"
+                        HorizontalOptions="Center"
+                        IsRunning="{Binding IsLoading}"
+                        VerticalOptions="Center"
+                        WidthRequest="25"
+                        Color="Maroon" />
+                </Grid>
+            </Grid>
 
             <Grid
-                Grid.Row="1"
-                Padding="10"
-                BackgroundColor="{StaticResource LightWeat}">
+                Grid.Column="1"
+                Padding="0,10"
+                BackgroundColor="{StaticResource LightWeat}"
+                RowDefinitions="Auto, *">
+                <VerticalStackLayout Grid.Row="0" Spacing="5">
+                    <controls:CurrentDateTimeControl />
+                    <Label
+                        FontAttributes="Bold"
+                        FontSize="25"
+                        HorizontalOptions="Center"
+                        Text="Save Menu Item"
+                        TextColor="Black" />
+                </VerticalStackLayout>
 
-                <controls:SaveMenuItemFormControl
-                    Item="{Binding MenuItem}"
-                    OnCancel="SaveMenuItemFormControl_OnCancel"
-                    OnSaveItem="SaveMenuItemFormControl_OnSaveItem" />
-
+                <Grid
+                    Grid.Row="1"
+                    Padding="10"
+                    BackgroundColor="{StaticResource LightWeat}">
+                    <controls:SaveMenuItemFormControl
+                        Item="{Binding MenuItem}"
+                        OnCancel="SaveMenuItemFormControl_OnCancel"
+                        OnSaveItem="SaveMenuItemFormControl_OnSaveItem" />
+                </Grid>
             </Grid>
-
-
         </Grid>
 
-    </Grid>
+        <!-- Mobile layout: stacked vertically with toggle -->
+        <Grid x:Name="MobileLayout" RowDefinitions="Auto, *" IsVisible="False">
+            <!-- Mobile header with form toggle -->
+            <Grid
+                Grid.Row="0"
+                Padding="15,10"
+                BackgroundColor="{StaticResource LightWeat}"
+                ColumnDefinitions="*, Auto">
+                <Label
+                    Grid.Column="0"
+                    FontAttributes="Bold"
+                    FontSize="18"
+                    Text="Manage Menu Items"
+                    VerticalOptions="Center" />
+                <Button
+                    x:Name="FormToggleButton"
+                    Grid.Column="1"
+                    BackgroundColor="Maroon"
+                    Clicked="OnFormToggleClicked"
+                    FontSize="12"
+                    MinimumHeightRequest="35"
+                    Text="Add/Edit Item"
+                    TextColor="White" />
+            </Grid>
 
+            <!-- Content area that switches between menu items and form -->
+            <Grid Grid.Row="1">
+                <!-- Menu Items Content -->
+                <Grid
+                    x:Name="MenuItemsContent"
+                    Padding="10"
+                    RowDefinitions="Auto, *">
+                    <controls:CategoriesListControl
+                        Grid.Row="0"
+                        Categories="{Binding Categories}"
+                        OnCategorySelected="OnCategorySelected" />
+
+                    <Grid Grid.Row="1" Margin="0,15,0,0">
+                        <controls:MenuItemsListControl
+                            IsEditingMode="True"
+                            Items="{Binding MenuItems}"
+                            OnItemSelected="OnItemSelected" />
+
+                        <BoxView
+                            HorizontalOptions="Fill"
+                            IsVisible="{Binding IsLoading}"
+                            Opacity="0.5"
+                            VerticalOptions="Fill"
+                            Color="{StaticResource LightWeat}" />
+
+                        <ActivityIndicator
+                            HeightRequest="25"
+                            HorizontalOptions="Center"
+                            IsRunning="{Binding IsLoading}"
+                            VerticalOptions="Center"
+                            WidthRequest="25"
+                            Color="Maroon" />
+                    </Grid>
+                </Grid>
+
+                <!-- Form Content -->
+                <Grid
+                    x:Name="FormContent"
+                    Padding="15"
+                    BackgroundColor="{StaticResource LightWeat}"
+                    IsVisible="False"
+                    RowDefinitions="Auto, Auto, *">
+                    
+                    <Grid Grid.Row="0" ColumnDefinitions="*, Auto" Margin="0,0,0,15">
+                        <Label
+                            FontAttributes="Bold"
+                            FontSize="18"
+                            Text="Add/Edit Menu Item"
+                            TextColor="Black"
+                            VerticalOptions="Center" />
+                        <Button
+                            Grid.Column="1"
+                            BackgroundColor="Red"
+                            Clicked="OnFormToggleClicked"
+                            FontSize="12"
+                            HeightRequest="35"
+                            Text="Cancel"
+                            TextColor="White"
+                            WidthRequest="70" />
+                    </Grid>
+
+                    <controls:CurrentDateTimeControl Grid.Row="1" Margin="0,0,0,15" />
+
+                    <ScrollView Grid.Row="2">
+                        <controls:SaveMenuItemFormControl
+                            Item="{Binding MenuItem}"
+                            OnCancel="SaveMenuItemFormControl_OnCancel"
+                            OnSaveItem="SaveMenuItemFormControl_OnSaveItem" />
+                    </ScrollView>
+                </Grid>
+
+                <!-- Add New Item FAB for Mobile -->
+                <Button
+                    x:Name="AddItemFab"
+                    BackgroundColor="DarkSeaGreen"
+                    CornerRadius="30"
+                    FontSize="24"
+                    HeightRequest="60"
+                    HorizontalOptions="End"
+                    Margin="20"
+                    Text="+"
+                    TextColor="White"
+                    VerticalOptions="End"
+                    WidthRequest="60"
+                    Clicked="OnAddItemFabClicked"
+                    IsVisible="{Binding Source={x:Reference MenuItemsContent}, Path=IsVisible}" />
+            </Grid>
+        </Grid>
+    </Grid>
 </ContentPage>

@@ -8,289 +8,583 @@
     xmlns:models="clr-namespace:RestaurantPOS.Models"
     xmlns:vm="clr-namespace:RestaurantPOS.ViewModels"
     x:DataType="vm:HomeViewModel"
-    Shell.NavBarIsVisible="False">
+    Shell.NavBarIsVisible="True"
+    Title="Restaurant POS">
 
-    <Grid ColumnDefinitions=".75*, .25*">
+    <!-- Use responsive layout that adapts to screen size -->
+    <Grid x:Name="MainGrid">
+        <!-- Desktop layout: side-by-side -->
+        <Grid x:Name="DesktopLayout" ColumnDefinitions=".75*, .25*" IsVisible="True">
+            <Grid
+                Grid.Column="0"
+                Padding="15"
+                RowDefinitions="Auto, Auto, *"
+                RowSpacing="15">
 
-        <Grid
-            Grid.Column="0"
-            Padding="15"
-            RowDefinitions="Auto, Auto, *"
-            RowSpacing="15">
+                <Label
+                    Grid.Row="0"
+                    FontAttributes="Bold"
+                    FontSize="22"
+                    Text="{Binding Name, StringFormat='Hello, {0}!'}" />
 
-            <Label
-                Grid.Row="0"
-                FontAttributes="Bold"
-                FontSize="22"
-                Text="{Binding Name, StringFormat='Hello, {0}!'}" />
+                <controls:CategoriesListControl
+                    Grid.Row="1"
+                    Categories="{Binding Categories}"
+                    OnCategorySelected="OnCategorySelected" />
 
-            <controls:CategoriesListControl
-                Grid.Row="1"
-                Categories="{Binding Categories}"
-                OnCategorySelected="OnCategorySelected" />
+                <Grid Grid.Row="2">
+                    <controls:MenuItemsListControl Items="{Binding MenuItems}" OnItemSelected="OnItemSelected" />
 
-            <Grid Grid.Row="2">
+                    <BoxView
+                        HorizontalOptions="Fill"
+                        IsVisible="{Binding IsLoading}"
+                        Opacity="0.5"
+                        VerticalOptions="Fill"
+                        Color="{StaticResource LightWeat}" />
 
-                <controls:MenuItemsListControl Items="{Binding MenuItems}" OnItemSelected="OnItemSelected" />
-
-                <BoxView
-                    HorizontalOptions="Fill"
-                    IsVisible="{Binding IsLoading}"
-                    Opacity="0.5"
-                    VerticalOptions="Fill"
-                    Color="{StaticResource LightWeat}" />
-
-                <ActivityIndicator
-                    HeightRequest="25"
-                    HorizontalOptions="Center"
-                    IsRunning="{Binding IsLoading}"
-                    VerticalOptions="Center"
-                    WidthRequest="25"
-                    Color="Maroon" />
+                    <ActivityIndicator
+                        HeightRequest="25"
+                        HorizontalOptions="Center"
+                        IsRunning="{Binding IsLoading}"
+                        VerticalOptions="Center"
+                        WidthRequest="25"
+                        Color="Maroon" />
+                </Grid>
             </Grid>
 
+            <Grid
+                Grid.Column="1"
+                Padding="0,10"
+                BackgroundColor="{StaticResource LightWeat}"
+                RowDefinitions="Auto, *, Auto">
+                <VerticalStackLayout Grid.Row="0" Spacing="5">
+                    <controls:CurrentDateTimeControl />
+                    <Label
+                        FontAttributes="Bold"
+                        FontSize="25"
+                        HorizontalOptions="Center"
+                        Text="Current Order"
+                        TextColor="Black" />
+                </VerticalStackLayout>
+
+                <Grid
+                    Grid.Row="1"
+                    Padding="10"
+                    BackgroundColor="Wheat">
+                    <CollectionView ItemsSource="{Binding CartItems}">
+                        <CollectionView.ItemsLayout>
+                            <LinearItemsLayout ItemSpacing="2" Orientation="Vertical" />
+                        </CollectionView.ItemsLayout>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="models:CartModel">
+                                <Grid>
+                                    <Border Padding="5" BackgroundColor="{StaticResource LightWeat}">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="10" />
+                                        </Border.StrokeShape>
+                                        <Grid ColumnDefinitions="60, *" ColumnSpacing="10">
+                                            <Border
+                                                Grid.Column="0"
+                                                BackgroundColor="LightGray"
+                                                HeightRequest="60"
+                                                StrokeShape="RoundRectangle 5"
+                                                WidthRequest="60">
+                                                <Image
+                                                    Aspect="AspectFit"
+                                                    HeightRequest="50"
+                                                    Source="{Binding Icon}"
+                                                    WidthRequest="50" />
+                                            </Border>
+                                            <VerticalStackLayout Grid.Column="1" Spacing="5">
+                                                <Label
+                                                    FontAttributes="Bold"
+                                                    FontSize="18"
+                                                    Text="{Binding Name}"
+                                                    TextColor="Black" />
+                                                <Grid ColumnDefinitions="Auto, *">
+                                                    <Label
+                                                        Grid.Column="0"
+                                                        FontAttributes="Bold"
+                                                        FontSize="18"
+                                                        Text="{Binding Price, StringFormat='{0:C}'}"
+                                                        TextColor="Maroon" />
+                                                    <Grid
+                                                        Grid.Column="1"
+                                                        ColumnDefinitions="*, 2*, *"
+                                                        HorizontalOptions="End"
+                                                        WidthRequest="120">
+                                                        <ImageButton
+                                                            Grid.Column="0"
+                                                            Padding="5"
+                                                            BackgroundColor="Yellow"
+                                                            Command="{Binding Source={x:RelativeSource AncestorType={x:Type vm:HomeViewModel}}, Path=DecreaseQuantityCommand}"
+                                                            CommandParameter="{Binding .}"
+                                                            CornerRadius="5"
+                                                            MinimumHeightRequest="30"
+                                                            MinimumWidthRequest="30"
+                                                            Source="minus.png"
+                                                            ToolTipProperties.Text="Decrease quantity" />
+                                                        <Label
+                                                            Grid.Column="1"
+                                                            BackgroundColor="White"
+                                                            FontAttributes="Bold"
+                                                            FontSize="20"
+                                                            HeightRequest="30"
+                                                            HorizontalOptions="Center"
+                                                            HorizontalTextAlignment="Center"
+                                                            Text="{Binding Quantity}"
+                                                            TextColor="Maroon"
+                                                            VerticalOptions="Center"
+                                                            WidthRequest="60" />
+                                                        <ImageButton
+                                                            Grid.Column="2"
+                                                            Padding="5"
+                                                            BackgroundColor="Yellow"
+                                                            Command="{Binding Source={x:RelativeSource AncestorType={x:Type vm:HomeViewModel}}, Path=IncreaseQuantityCommand}"
+                                                            CommandParameter="{Binding .}"
+                                                            CornerRadius="5"
+                                                            MinimumHeightRequest="30"
+                                                            MinimumWidthRequest="30"
+                                                            Source="plus.png"
+                                                            ToolTipProperties.Text="Increase quantity" />
+                                                    </Grid>
+                                                </Grid>
+                                            </VerticalStackLayout>
+                                        </Grid>
+                                    </Border>
+                                    <ImageButton
+                                        Margin="0,5,5,0"
+                                        Background="Red"
+                                        Command="{Binding Source={x:RelativeSource AncestorType={x:Type vm:HomeViewModel}}, Path=RemoveItemFromCartCommand}"
+                                        CommandParameter="{Binding .}"
+                                        CornerRadius="5"
+                                        HorizontalOptions="End"
+                                        MinimumHeightRequest="20"
+                                        MinimumWidthRequest="20"
+                                        Source="x.png"
+                                        ToolTipProperties.Text="Remove from current order"
+                                        VerticalOptions="Start" />
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </Grid>
+
+                <VerticalStackLayout Grid.Row="2" Padding="15,10,15,0">
+                    <Border
+                        Padding="10"
+                        BackgroundColor="White"
+                        StrokeShape="RoundRectangle 10"
+                        StrokeThickness="0">
+                        <Border.Shadow>
+                            <Shadow Brush="Maroon" Radius="15" />
+                        </Border.Shadow>
+
+                        <Grid
+                            ColumnDefinitions="2*, 3*"
+                            RowDefinitions="Auto, Auto, Auto, Auto, Auto, Auto"
+                            RowSpacing="8">
+                            <Label
+                                Grid.Row="0"
+                                Grid.Column="0"
+                                Text="Subtotal"
+                                TextColor="Black" />
+                            <Label
+                                Grid.Row="0"
+                                Grid.Column="1"
+                                HorizontalOptions="Center"
+                                Text="{Binding Subtotal, StringFormat='{0:C}'}"
+                                TextColor="Black" />
+                            <HorizontalStackLayout
+                                Grid.Row="1"
+                                Grid.Column="0"
+                                Spacing="5">
+                                <Label
+                                    Text="Tax"
+                                    TextColor="Black"
+                                    VerticalOptions="Center" />
+                                <Label
+                                    Padding="5,0"
+                                    BackgroundColor="Wheat"
+                                    Text="{Binding TaxPrecentage, StringFormat='{0}%'}"
+                                    TextColor="Blue"
+                                    TextDecorations="Underline"
+                                    ToolTipProperties.Text="Click to change tax percentage"
+                                    VerticalOptions="Center">
+                                    <Label.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding TaxPercentageClickCommand}" />
+                                    </Label.GestureRecognizers>
+                                </Label>
+                            </HorizontalStackLayout>
+                            <Label
+                                Grid.Row="1"
+                                Grid.Column="1"
+                                HorizontalOptions="Center"
+                                Text="{Binding TaxAmount, StringFormat='{0:C}'}"
+                                TextColor="Black" />
+                            <Border
+                                Grid.Row="2"
+                                Grid.ColumnSpan="2"
+                                Stroke="Maroon"
+                                StrokeDashArray="20,5"
+                                StrokeThickness="0.5" />
+                            <Label
+                                Grid.Row="3"
+                                Grid.Column="0"
+                                FontAttributes="Bold"
+                                Text="Total"
+                                TextColor="Black" />
+                            <Label
+                                Grid.Row="3"
+                                Grid.Column="1"
+                                FontAttributes="Bold"
+                                HorizontalOptions="Center"
+                                Text="{Binding Total, StringFormat='{0:C}'}"
+                                TextColor="Black" />
+                            <Border
+                                Grid.Row="4"
+                                Grid.ColumnSpan="2"
+                                Stroke="Maroon"
+                                StrokeDashArray="20,5"
+                                StrokeThickness="0.5" />
+                            <Grid
+                                Grid.Row="5"
+                                Grid.ColumnSpan="2"
+                                ColumnDefinitions="Auto, *, Auto, Auto"
+                                ColumnSpacing="5">
+                                <Button
+                                    Grid.Column="0"
+                                    BackgroundColor="Red"
+                                    Command="{Binding ClearCartCommand}"
+                                    MinimumHeightRequest="25"
+                                    MinimumWidthRequest="25"
+                                    Text="X"
+                                    TextColor="White"
+                                    ToolTipProperties.Text="Clear Current Order" />
+                                <Button
+                                    Grid.Column="2"
+                                    BackgroundColor="DarkOliveGreen"
+                                    Command="{Binding PlaceOrderCommand}"
+                                    MinimumHeightRequest="25"
+                                    MinimumWidthRequest="25"
+                                    Text="Paid Cash"
+                                    TextColor="White"
+                                    ToolTipProperties.Text="Close Order">
+                                    <Button.CommandParameter>
+                                        <x:Boolean>true</x:Boolean>
+                                    </Button.CommandParameter>
+                                </Button>
+                                <Button
+                                    Grid.Column="3"
+                                    BackgroundColor="BlueViolet"
+                                    Command="{Binding PlaceOrderCommand}"
+                                    MinimumHeightRequest="25"
+                                    MinimumWidthRequest="25"
+                                    Text="Paid Online"
+                                    TextColor="White"
+                                    ToolTipProperties.Text="Close Order">
+                                    <Button.CommandParameter>
+                                        <x:Boolean>false</x:Boolean>
+                                    </Button.CommandParameter>
+                                </Button>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                </VerticalStackLayout>
+            </Grid>
         </Grid>
 
-        <Grid
-            Grid.Column="1"
-            Padding="0,10"
-            BackgroundColor="{StaticResource LightWeat}"
-            RowDefinitions="Auto, *, Auto">
-            <VerticalStackLayout Grid.Row="0" Spacing="5">
-                <controls:CurrentDateTimeControl />
-                <Label
-                    FontAttributes="Bold"
-                    FontSize="25"
-                    HorizontalOptions="Center"
-                    Text="Current Order"
-                    TextColor="Black" />
-            </VerticalStackLayout>
-
+        <!-- Mobile layout: stacked vertically with toggle -->
+        <Grid x:Name="MobileLayout" RowDefinitions="Auto, *" IsVisible="False">
+            <!-- Mobile header with cart toggle -->
             <Grid
-                Grid.Row="1"
-                Padding="10"
-                BackgroundColor="Wheat">
-                <CollectionView ItemsSource="{Binding CartItems}">
-                    <CollectionView.ItemsLayout>
-                        <LinearItemsLayout ItemSpacing="2" Orientation="Vertical" />
-                    </CollectionView.ItemsLayout>
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="models:CartModel">
-                            <Grid>
-                                <Border Padding="5" BackgroundColor="{StaticResource LightWeat}">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="10" />
-                                    </Border.StrokeShape>
-                                    <Grid ColumnDefinitions="60, *" ColumnSpacing="10">
-                                        <Border
-                                            Grid.Column="0"
-                                            BackgroundColor="LightGray"
-                                            HeightRequest="60"
-                                            StrokeShape="RoundRectangle 5"
-                                            WidthRequest="60">
-                                            <Image
-                                                Aspect="AspectFit"
-                                                HeightRequest="50"
-                                                Source="{Binding Icon}"
-                                                WidthRequest="50" />
-                                        </Border>
-                                        <VerticalStackLayout Grid.Column="1" Spacing="5">
-                                            <Label
-                                                FontAttributes="Bold"
-                                                FontSize="18"
-                                                Text="{Binding Name}"
-                                                TextColor="Black" />
-                                            <Grid ColumnDefinitions="Auto, *">
+                Grid.Row="0"
+                Padding="15,10"
+                BackgroundColor="{StaticResource LightWeat}"
+                ColumnDefinitions="*, Auto, Auto">
+                <Label
+                    Grid.Column="0"
+                    FontAttributes="Bold"
+                    FontSize="18"
+                    Text="{Binding Name, StringFormat='Hello, {0}!'}"
+                    VerticalOptions="Center" />
+                <Button
+                    x:Name="CartToggleButton"
+                    Grid.Column="1"
+                    BackgroundColor="Maroon"
+                    Clicked="OnCartToggleClicked"
+                    FontSize="12"
+                    MinimumHeightRequest="35"
+                    Text="{Binding CartItems.Count, StringFormat='Cart ({0})'}"
+                    TextColor="White" />
+                <Label
+                    Grid.Column="2"
+                    FontAttributes="Bold"
+                    FontSize="14"
+                    Margin="10,0,0,0"
+                    Text="{Binding Total, StringFormat='{0:C}'}"
+                    TextColor="Maroon"
+                    VerticalOptions="Center" />
+            </Grid>
+
+            <!-- Content area that switches between menu and cart -->
+            <Grid Grid.Row="1">
+                <!-- Menu content -->
+                <Grid
+                    x:Name="MenuContent"
+                    Padding="10"
+                    RowDefinitions="Auto, *">
+                    <controls:CategoriesListControl
+                        Grid.Row="0"
+                        Categories="{Binding Categories}"
+                        OnCategorySelected="OnCategorySelected" />
+
+                    <Grid Grid.Row="1" Margin="0,15,0,0">
+                        <controls:MenuItemsListControl Items="{Binding MenuItems}" OnItemSelected="OnItemSelected" />
+
+                        <BoxView
+                            HorizontalOptions="Fill"
+                            IsVisible="{Binding IsLoading}"
+                            Opacity="0.5"
+                            VerticalOptions="Fill"
+                            Color="{StaticResource LightWeat}" />
+
+                        <ActivityIndicator
+                            HeightRequest="25"
+                            HorizontalOptions="Center"
+                            IsRunning="{Binding IsLoading}"
+                            VerticalOptions="Center"
+                            WidthRequest="25"
+                            Color="Maroon" />
+                    </Grid>
+                </Grid>
+
+                <!-- Cart content -->
+                <Grid
+                    x:Name="CartContent"
+                    Padding="10"
+                    BackgroundColor="{StaticResource LightWeat}"
+                    IsVisible="False"
+                    RowDefinitions="Auto, *, Auto">
+                    <Label
+                        Grid.Row="0"
+                        FontAttributes="Bold"
+                        FontSize="20"
+                        HorizontalOptions="Center"
+                        Text="Current Order"
+                        TextColor="Black" />
+
+                    <ScrollView Grid.Row="1" Margin="0,15,0,0">
+                        <CollectionView ItemsSource="{Binding CartItems}">
+                            <CollectionView.ItemsLayout>
+                                <LinearItemsLayout ItemSpacing="8" Orientation="Vertical" />
+                            </CollectionView.ItemsLayout>
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="models:CartModel">
+                                    <Border Padding="10" BackgroundColor="White">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="10" />
+                                        </Border.StrokeShape>
+                                        <Grid ColumnDefinitions="80, *" ColumnSpacing="10">
+                                            <Border
+                                                Grid.Column="0"
+                                                BackgroundColor="LightGray"
+                                                HeightRequest="80"
+                                                StrokeShape="RoundRectangle 8"
+                                                WidthRequest="80">
+                                                <Image
+                                                    Aspect="AspectFit"
+                                                    Source="{Binding Icon}" />
+                                            </Border>
+                                            <VerticalStackLayout Grid.Column="1" Spacing="8">
                                                 <Label
-                                                    Grid.Column="0"
+                                                    FontAttributes="Bold"
+                                                    FontSize="16"
+                                                    Text="{Binding Name}"
+                                                    TextColor="Black" />
+                                                <Label
                                                     FontAttributes="Bold"
                                                     FontSize="18"
                                                     Text="{Binding Price, StringFormat='{0:C}'}"
                                                     TextColor="Maroon" />
-                                                <Grid
-                                                    Grid.Column="1"
-                                                    ColumnDefinitions="*, 2*, *"
-                                                    HorizontalOptions="End"
-                                                    WidthRequest="120">
-                                                    <ImageButton
+                                                <Grid ColumnDefinitions="*, Auto">
+                                                    <Grid
                                                         Grid.Column="0"
-                                                        Padding="5"
-                                                        BackgroundColor="Yellow"
-                                                        Command="{Binding Source={x:RelativeSource AncestorType={x:Type vm:HomeViewModel}}, Path=DecreaseQuantityCommand}"
-                                                        CommandParameter="{Binding .}"
-                                                        CornerRadius="5"
-                                                        MinimumHeightRequest="30"
-                                                        MinimumWidthRequest="30"
-                                                        Source="minus.png"
-                                                        ToolTipProperties.Text="Decrease quantity" />
-                                                    <Label
+                                                        ColumnDefinitions="40, 60, 40"
+                                                        ColumnSpacing="5">
+                                                        <Button
+                                                            Grid.Column="0"
+                                                            BackgroundColor="Yellow"
+                                                            Command="{Binding Source={x:RelativeSource AncestorType={x:Type vm:HomeViewModel}}, Path=DecreaseQuantityCommand}"
+                                                            CommandParameter="{Binding .}"
+                                                            FontSize="18"
+                                                            HeightRequest="40"
+                                                            Text="-"
+                                                            TextColor="Black" />
+                                                        <Label
+                                                            Grid.Column="1"
+                                                            BackgroundColor="White"
+                                                            FontAttributes="Bold"
+                                                            FontSize="18"
+                                                            HeightRequest="40"
+                                                            HorizontalOptions="Fill"
+                                                            HorizontalTextAlignment="Center"
+                                                            Text="{Binding Quantity}"
+                                                            TextColor="Maroon"
+                                                            VerticalOptions="Center"
+                                                            VerticalTextAlignment="Center" />
+                                                        <Button
+                                                            Grid.Column="2"
+                                                            BackgroundColor="Yellow"
+                                                            Command="{Binding Source={x:RelativeSource AncestorType={x:Type vm:HomeViewModel}}, Path=IncreaseQuantityCommand}"
+                                                            CommandParameter="{Binding .}"
+                                                            FontSize="18"
+                                                            HeightRequest="40"
+                                                            Text="+"
+                                                            TextColor="Black" />
+                                                    </Grid>
+                                                    <Button
                                                         Grid.Column="1"
-                                                        BackgroundColor="White"
-                                                        FontAttributes="Bold"
-                                                        FontSize="20"
-                                                        HeightRequest="30"
-                                                        HorizontalOptions="Center"
-                                                        HorizontalTextAlignment="Center"
-                                                        Text="{Binding Quantity}"
-                                                        TextColor="Maroon"
-                                                        VerticalOptions="Center"
-                                                        WidthRequest="60" />
-                                                    <ImageButton
-                                                        Grid.Column="2"
-                                                        Padding="5"
-                                                        BackgroundColor="Yellow"
-                                                        Command="{Binding Source={x:RelativeSource AncestorType={x:Type vm:HomeViewModel}}, Path=IncreaseQuantityCommand}"
+                                                        BackgroundColor="Red"
+                                                        Command="{Binding Source={x:RelativeSource AncestorType={x:Type vm:HomeViewModel}}, Path=RemoveItemFromCartCommand}"
                                                         CommandParameter="{Binding .}"
-                                                        CornerRadius="5"
-                                                        MinimumHeightRequest="30"
-                                                        MinimumWidthRequest="30"
-                                                        Source="plus.png"
-                                                        ToolTipProperties.Text="Increase quantity" />
+                                                        FontSize="14"
+                                                        HeightRequest="40"
+                                                        Text="Remove"
+                                                        TextColor="White"
+                                                        WidthRequest="80" />
                                                 </Grid>
-                                            </Grid>
-                                        </VerticalStackLayout>
-                                    </Grid>
-                                </Border>
-                                <ImageButton
-                                    Margin="0,5,5,0"
-                                    Background="Red"
-                                    Command="{Binding Source={x:RelativeSource AncestorType={x:Type vm:HomeViewModel}}, Path=RemoveItemFromCartCommand}"
-                                    CommandParameter="{Binding .}"
-                                    CornerRadius="5"
-                                    HorizontalOptions="End"
-                                    MinimumHeightRequest="20"
-                                    MinimumWidthRequest="20"
-                                    Source="x.png"
-                                    ToolTipProperties.Text="Remove from current order"
-                                    VerticalOptions="Start" />
-                            </Grid>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
-            </Grid>
+                                            </VerticalStackLayout>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </ScrollView>
 
-            <VerticalStackLayout Grid.Row="2" Padding="15,10,15,0">
-                <Border
-                    Padding="10"
-                    BackgroundColor="White"
-                    StrokeShape="RoundRectangle 10"
-                    StrokeThickness="0">
-                    <Border.Shadow>
-                        <Shadow Brush="Maroon" Radius="15" />
-                    </Border.Shadow>
-
-                    <Grid
-                        ColumnDefinitions="2*, 3*"
-                        RowDefinitions="Auto, Auto, Auto, Auto, Auto, Auto"
-                        RowSpacing="8">
-                        <Label
-                            Grid.Row="0"
-                            Grid.Column="0"
-                            Text="Subtotal"
-                            TextColor="Black" />
-                        <Label
-                            Grid.Row="0"
-                            Grid.Column="1"
-                            HorizontalOptions="Center"
-                            Text="{Binding Subtotal, StringFormat='{0:C}'}"
-                            TextColor="Black" />
-                        <HorizontalStackLayout
-                            Grid.Row="1"
-                            Grid.Column="0"
-                            Spacing="5">
-                            <Label
-                                Text="Tax"
-                                TextColor="Black"
-                                VerticalOptions="Center" />
-                            <Label
-                                Padding="5,0"
-                                BackgroundColor="Wheat"
-                                Text="{Binding TaxPrecentage, StringFormat='{0}%'}"
-                                TextColor="Blue"
-                                TextDecorations="Underline"
-                                ToolTipProperties.Text="Click to change tax percentage"
-                                VerticalOptions="Center">
-                                <Label.GestureRecognizers>
-                                    <TapGestureRecognizer Command="{Binding TaxPercentageClickCommand}" />
-                                </Label.GestureRecognizers>
-                            </Label>
-                        </HorizontalStackLayout>
-                        <Label
-                            Grid.Row="1"
-                            Grid.Column="1"
-                            HorizontalOptions="Center"
-                            Text="{Binding TaxAmount, StringFormat='{0:C}'}"
-                            TextColor="Black" />
-                        <Border
-                            Grid.Row="2"
-                            Grid.ColumnSpan="2"
-                            Stroke="Maroon"
-                            StrokeDashArray="20,5"
-                            StrokeThickness="0.5" />
-                        <Label
-                            Grid.Row="3"
-                            Grid.Column="0"
-                            FontAttributes="Bold"
-                            Text="Total"
-                            TextColor="Black" />
-                        <Label
-                            Grid.Row="3"
-                            Grid.Column="1"
-                            FontAttributes="Bold"
-                            HorizontalOptions="Center"
-                            Text="{Binding Total, StringFormat='{0:C}'}"
-                            TextColor="Black" />
-                        <Border
-                            Grid.Row="4"
-                            Grid.ColumnSpan="2"
-                            Stroke="Maroon"
-                            StrokeDashArray="20,5"
-                            StrokeThickness="0.5" />
+                    <Border
+                        Grid.Row="2"
+                        Margin="0,15,0,0"
+                        Padding="15"
+                        BackgroundColor="White"
+                        StrokeShape="RoundRectangle 15">
                         <Grid
-                            Grid.Row="5"
-                            Grid.ColumnSpan="2"
-                            ColumnDefinitions="Auto, *, Auto, Auto"
-                            ColumnSpacing="5">
-                            <Button
+                            ColumnDefinitions="*, *"
+                            RowDefinitions="Auto, Auto, Auto, Auto, Auto, Auto, Auto"
+                            RowSpacing="10">
+                            <Label
+                                Grid.Row="0"
                                 Grid.Column="0"
+                                FontSize="16"
+                                Text="Subtotal"
+                                TextColor="Black" />
+                            <Label
+                                Grid.Row="0"
+                                Grid.Column="1"
+                                FontSize="16"
+                                HorizontalOptions="End"
+                                Text="{Binding Subtotal, StringFormat='{0:C}'}"
+                                TextColor="Black" />
+                            <HorizontalStackLayout
+                                Grid.Row="1"
+                                Grid.Column="0"
+                                Spacing="10">
+                                <Label
+                                    FontSize="16"
+                                    Text="Tax"
+                                    TextColor="Black"
+                                    VerticalOptions="Center" />
+                                <Label
+                                    Padding="8,4"
+                                    BackgroundColor="Wheat"
+                                    FontSize="14"
+                                    Text="{Binding TaxPrecentage, StringFormat='{0}%'}"
+                                    TextColor="Blue"
+                                    TextDecorations="Underline"
+                                    ToolTipProperties.Text="Click to change tax percentage"
+                                    VerticalOptions="Center">
+                                    <Label.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding TaxPercentageClickCommand}" />
+                                    </Label.GestureRecognizers>
+                                </Label>
+                            </HorizontalStackLayout>
+                            <Label
+                                Grid.Row="1"
+                                Grid.Column="1"
+                                FontSize="16"
+                                HorizontalOptions="End"
+                                Text="{Binding TaxAmount, StringFormat='{0:C}'}"
+                                TextColor="Black" />
+                            <Border
+                                Grid.Row="2"
+                                Grid.ColumnSpan="2"
+                                Stroke="Maroon"
+                                StrokeDashArray="20,5"
+                                StrokeThickness="1" />
+                            <Label
+                                Grid.Row="3"
+                                Grid.Column="0"
+                                FontAttributes="Bold"
+                                FontSize="18"
+                                Text="Total"
+                                TextColor="Black" />
+                            <Label
+                                Grid.Row="3"
+                                Grid.Column="1"
+                                FontAttributes="Bold"
+                                FontSize="18"
+                                HorizontalOptions="End"
+                                Text="{Binding Total, StringFormat='{0:C}'}"
+                                TextColor="Black" />
+                            <Border
+                                Grid.Row="4"
+                                Grid.ColumnSpan="2"
+                                Stroke="Maroon"
+                                StrokeDashArray="20,5"
+                                StrokeThickness="1" />
+                            <Button
+                                Grid.Row="5"
+                                Grid.ColumnSpan="2"
                                 BackgroundColor="Red"
                                 Command="{Binding ClearCartCommand}"
-                                MinimumHeightRequest="25"
-                                MinimumWidthRequest="25"
-                                Text="X"
-                                TextColor="White"
-                                ToolTipProperties.Text="Clear Current Order" />
-                            <Button
-                                Grid.Column="2"
-                                BackgroundColor="DarkOliveGreen"
-                                Command="{Binding PlaceOrderCommand}"
-                                MinimumHeightRequest="25"
-                                MinimumWidthRequest="25"
-                                Text="Paid Cash"
-                                TextColor="White"
-                                ToolTipProperties.Text="Close Order">
-                                <Button.CommandParameter>
-                                    <x:Boolean>true</x:Boolean>
-                                </Button.CommandParameter>
-                            </Button>
-                            <Button
-                                Grid.Column="3"
-                                BackgroundColor="BlueViolet"
-                                Command="{Binding PlaceOrderCommand}"
-                                MinimumHeightRequest="25"
-                                MinimumWidthRequest="25"
-                                Text="Paid Online"
-                                TextColor="White"
-                                ToolTipProperties.Text="Close Order">
-                                <Button.CommandParameter>
-                                    <x:Boolean>false</x:Boolean>
-                                </Button.CommandParameter>
-                            </Button>
+                                FontSize="16"
+                                HeightRequest="50"
+                                Text="Clear Order"
+                                TextColor="White" />
+                            <Grid
+                                Grid.Row="6"
+                                Grid.ColumnSpan="2"
+                                ColumnDefinitions="*, *"
+                                ColumnSpacing="10">
+                                <Button
+                                    Grid.Column="0"
+                                    BackgroundColor="DarkOliveGreen"
+                                    Command="{Binding PlaceOrderCommand}"
+                                    FontSize="16"
+                                    HeightRequest="50"
+                                    Text="Pay Cash"
+                                    TextColor="White">
+                                    <Button.CommandParameter>
+                                        <x:Boolean>true</x:Boolean>
+                                    </Button.CommandParameter>
+                                </Button>
+                                <Button
+                                    Grid.Column="1"
+                                    BackgroundColor="BlueViolet"
+                                    Command="{Binding PlaceOrderCommand}"
+                                    FontSize="16"
+                                    HeightRequest="50"
+                                    Text="Pay Online"
+                                    TextColor="White">
+                                    <Button.CommandParameter>
+                                        <x:Boolean>false</x:Boolean>
+                                    </Button.CommandParameter>
+                                </Button>
+                            </Grid>
                         </Grid>
-                    </Grid>
-                </Border>
-            </VerticalStackLayout>
+                    </Border>
+                </Grid>
+            </Grid>
         </Grid>
-
     </Grid>
 </ContentPage>
