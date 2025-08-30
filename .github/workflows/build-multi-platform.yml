@@ -113,17 +113,6 @@ jobs:
       - name: List artifacts
         run: find ./artifacts -type f -name "*"
 
-      - name: Create ZIP files for each platform
-        run: |
-          cd ./artifacts
-          for dir in */; do
-            platform=$(basename "$dir")
-            echo "Creating ZIP for $platform"
-            cd "$dir"
-            zip -r "../RestaurantPOS-${platform}.zip" ./*
-            cd ..
-          done
-
       - name: Generate release tag
         id: tag
         run: |
@@ -146,45 +135,85 @@ jobs:
             **Commit:** ${{ github.sha }}
             
             ### Included Platforms:
-            - 🤖 **Android APK** - Ready for installation on Android devices
-            - 🍎 **iOS App** - For iOS devices (requires signing)
+            - 🤖 **Android APK** - Direct APK file for installation on Android devices
+            - 🍎 **iOS App** - iOS application bundle (requires signing)
             - 🪟 **Windows Desktop** - Self-contained Windows application
             
             ### Installation:
-            - **Android**: Download and install the APK file
-            - **iOS**: Requires Xcode for installation and signing
-            - **Windows**: Extract ZIP and run the executable
+            - **Android**: Download and install the APK file directly
+            - **iOS**: Extract tar.gz and use Xcode for installation and signing
+            - **Windows**: Extract tar.gz and run the executable
             
             Built automatically from commit ${{ github.sha }}
           draft: false
           prerelease: false
 
+      - name: Find and upload Android APK
+        id: find-apk
+        run: |
+          APK_FILE=$(find ./artifacts/android-apk -name "*.apk" | head -1)
+          if [ -n "$APK_FILE" ]; then
+            echo "apk_path=$APK_FILE" >> $GITHUB_OUTPUT
+            echo "Found APK: $APK_FILE"
+          else
+            echo "No APK file found"
+          fi
+
       - name: Upload Android APK
+        if: steps.find-apk.outputs.apk_path
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./artifacts/RestaurantPOS-android-apk.zip
-          asset_name: RestaurantPOS-Android.zip
-          asset_content_type: application/zip
+          asset_path: ${{ steps.find-apk.outputs.apk_path }}
+          asset_name: RestaurantPOS.apk
+          asset_content_type: application/vnd.android.package-archive
+
+      - name: Find and upload iOS App
+        id: find-ios
+        run: |
+          APP_DIR=$(find ./artifacts/ios-app -name "*.app" -type d | head -1)
+          if [ -n "$APP_DIR" ]; then
+            # Create a tar.gz for iOS app directory
+            cd "$(dirname "$APP_DIR")"
+            tar -czf RestaurantPOS-iOS.tar.gz "$(basename "$APP_DIR")"
+            echo "ios_path=$(pwd)/RestaurantPOS-iOS.tar.gz" >> $GITHUB_OUTPUT
+            echo "Found iOS App: $APP_DIR"
+          else
+            echo "No iOS app found"
+          fi
 
       - name: Upload iOS App
+        if: steps.find-ios.outputs.ios_path
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./artifacts/RestaurantPOS-ios-app.zip
-          asset_name: RestaurantPOS-iOS.zip
-          asset_content_type: application/zip
+          asset_path: ${{ steps.find-ios.outputs.ios_path }}
+          asset_name: RestaurantPOS-iOS.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Create Windows executable archive
+        id: find-windows
+        run: |
+          if [ -d "./artifacts/windows-app" ]; then
+            cd ./artifacts/windows-app
+            tar -czf ../RestaurantPOS-Windows.tar.gz *
+            echo "windows_path=./artifacts/RestaurantPOS-Windows.tar.gz" >> $GITHUB_OUTPUT
+            echo "Windows app archived"
+          else
+            echo "No Windows app found"
+          fi
 
       - name: Upload Windows App
+        if: steps.find-windows.outputs.windows_path
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./artifacts/RestaurantPOS-windows-app.zip
-          asset_name: RestaurantPOS-Windows.zip
-          asset_content_type: application/zip
+          asset_path: ${{ steps.find-windows.outputs.windows_path }}
+          asset_name: RestaurantPOS-Windows.tar.gz
+          asset_content_type: application/gzip
