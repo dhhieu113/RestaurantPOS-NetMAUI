@@ -25,10 +25,14 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
+      - name: List available Xcode versions
+        run: ls -la /Applications/ | grep Xcode
+        shell: bash
+
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '15.2'
+          xcode-version: '16.0'
 
       # Cache .NET MAUI workloads to avoid reinstalling on each build
       - name: Cache .NET MAUI workloads
@@ -67,7 +71,7 @@ jobs:
         run: dotnet restore RestaurantPOS.sln
 
       - name: Build iOS
-        run: dotnet build RestaurantPOS.sln -c Release -f net8.0-ios /p:CreatePackage=true /p:UseMauiAndroid=false /p:UseMauiMacCatalyst=false /p:UseMauiWindows=false
+        run: dotnet build RestaurantPOS.sln -c Release -f net8.0-ios /p:CreatePackage=true /p:UseMauiAndroid=false /p:UseMauiMacCatalyst=false /p:UseMauiWindows=false /p:MtouchLink=SdkOnly
           
       - name: Find iOS artifacts
         run: |
