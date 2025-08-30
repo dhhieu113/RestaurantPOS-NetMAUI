@@ -13,8 +13,8 @@
 		<WindowsPackageType Condition="'$(WindowsPackageType)' == ''">MSIX</WindowsPackageType>
 		
 		<!-- AOT compilation configuration -->
-		<PublishAot Condition="'$(PublishAot)' == ''">false</PublishAot>
-		<PublishTrimmed Condition="'$(PublishTrimmed)' == ''">false</PublishTrimmed>
+		<PublishAot Condition="'$(PublishAot)' == ''">true</PublishAot>
+		<PublishTrimmed Condition="'$(PublishTrimmed)' == ''">true</PublishTrimmed>
 		
 		<!-- Build the TargetFrameworks property based on the platform properties -->
 		<TargetFrameworks></TargetFrameworks>
