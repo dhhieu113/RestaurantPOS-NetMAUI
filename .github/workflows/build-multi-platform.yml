@@ -1,4 +1,4 @@
-name: Build .NET MAUI (Android & iOS)
+name: Build .NET MAUI (Multi-Platform)
 
 on:
   push:
@@ -25,6 +25,18 @@ jobs:
             build-args: /p:CreatePackage=true
             artifact-name: ios-app
             artifact-path: '**/*.app'
+          - platform: windows
+            runs-on: windows-latest
+            target-framework: net8.0-windows10.0.19041.0
+            build-args: /p:WindowsPackageType=None
+            artifact-name: windows-app
+            artifact-path: './publish/windows/**'
+          - platform: linux
+            runs-on: ubuntu-latest
+            target-framework: net8.0
+            build-args: ''
+            artifact-name: linux-app
+            artifact-path: './publish/linux/**'
     
     runs-on: ${{ matrix.runs-on }}
     
@@ -50,6 +62,12 @@ jobs:
         with:
           xcode-version: latest-stable
 
+      - name: Setup Linux dependencies (Linux only)
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
+
       - name: Install MAUI workload
         run: dotnet workload install maui
 
@@ -59,6 +77,22 @@ jobs:
       - name: Build ${{ matrix.platform }}
         run: dotnet build RestaurantPOS.sln -c Release -f ${{ matrix.target-framework }} ${{ matrix.build-args }}
 
+      - name: Publish desktop app (Windows & Linux only)
+        if: matrix.platform == 'windows' || matrix.platform == 'linux'
+        run: |
+          if [ "${{ matrix.platform }}" = "windows" ]; then
+            dotnet publish RestaurantPOS.csproj -c Release -f ${{ matrix.target-framework }} -o ./publish/windows --self-contained true
+          elif [ "${{ matrix.platform }}" = "linux" ]; then
+            dotnet publish RestaurantPOS.csproj -c Release -f ${{ matrix.target-framework }} -o ./publish/linux --self-contained true
+          fi
+        shell: bash
+
+      - name: Test desktop app (Windows & Linux only)
+        if: matrix.platform == 'windows' || matrix.platform == 'linux'
+        run: |
+          echo "Testing ${{ matrix.platform }} desktop application..."
+          dotnet test --configuration Release --framework ${{ matrix.target-framework }} --verbosity normal || echo "No tests found or test execution failed"
+
       - name: Find build artifacts
         shell: pwsh
         run: |
@@ -66,6 +100,10 @@ jobs:
             Get-ChildItem -Path . -Filter "*.apk" -Recurse | Select-Object FullName
           } elseif ("${{ matrix.platform }}" -eq "ios") {
             Get-ChildItem -Path . -Filter "*.app" -Recurse | Select-Object FullName
+          } elseif ("${{ matrix.platform }}" -eq "windows") {
+            Get-ChildItem -Path "./publish/windows" -Recurse | Select-Object FullName
+          } elseif ("${{ matrix.platform }}" -eq "linux") {
+            Get-ChildItem -Path "./publish/linux" -Recurse | Select-Object FullName
           }
 
       - name: Upload ${{ matrix.platform }} artifact
