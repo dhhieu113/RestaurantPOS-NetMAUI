@@ -93,3 +93,98 @@ jobs:
         with:
           name: ${{ matrix.artifact-name }}
           path: ${{ matrix.artifact-path }}
+
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name: List artifacts
+        run: find ./artifacts -type f -name "*"
+
+      - name: Create ZIP files for each platform
+        run: |
+          cd ./artifacts
+          for dir in */; do
+            platform=$(basename "$dir")
+            echo "Creating ZIP for $platform"
+            cd "$dir"
+            zip -r "../RestaurantPOS-${platform}.zip" ./*
+            cd ..
+          done
+
+      - name: Generate release tag
+        id: tag
+        run: |
+          TAG="v$(date +'%Y.%m.%d')-$(echo $GITHUB_SHA | cut -c1-7)"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "Generated tag: $TAG"
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          release_name: RestaurantPOS ${{ steps.tag.outputs.tag }}
+          body: |
+            ## RestaurantPOS Multi-Platform Release
+            
+            **Build Date:** $(date +'%Y-%m-%d %H:%M:%S UTC')
+            **Commit:** ${{ github.sha }}
+            
+            ### Included Platforms:
+            - 🤖 **Android APK** - Ready for installation on Android devices
+            - 🍎 **iOS App** - For iOS devices (requires signing)
+            - 🪟 **Windows Desktop** - Self-contained Windows application
+            
+            ### Installation:
+            - **Android**: Download and install the APK file
+            - **iOS**: Requires Xcode for installation and signing
+            - **Windows**: Extract ZIP and run the executable
+            
+            Built automatically from commit ${{ github.sha }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Android APK
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./artifacts/RestaurantPOS-android-apk.zip
+          asset_name: RestaurantPOS-Android.zip
+          asset_content_type: application/zip
+
+      - name: Upload iOS App
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./artifacts/RestaurantPOS-ios-app.zip
+          asset_name: RestaurantPOS-iOS.zip
+          asset_content_type: application/zip
+
+      - name: Upload Windows App
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./artifacts/RestaurantPOS-windows-app.zip
+          asset_name: RestaurantPOS-Windows.zip
+          asset_content_type: application/zip
