@@ -12,6 +12,10 @@
 		<EnableMsixTooling Condition="'$(EnableMsixTooling)' == ''">true</EnableMsixTooling>
 		<WindowsPackageType Condition="'$(WindowsPackageType)' == ''">MSIX</WindowsPackageType>
 		
+		<!-- AOT compilation configuration -->
+		<PublishAot Condition="'$(PublishAot)' == ''">false</PublishAot>
+		<PublishTrimmed Condition="'$(PublishTrimmed)' == ''">false</PublishTrimmed>
+		
 		<!-- Build the TargetFrameworks property based on the platform properties -->
 		<TargetFrameworks></TargetFrameworks>
 		<TargetFrameworks Condition="'$(UseMauiAndroid)' == 'true'">$(TargetFrameworks);net8.0-android</TargetFrameworks>
@@ -177,5 +181,24 @@
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	</ItemGroup>
+
+	<!-- AOT optimization settings when PublishAot=true -->
+	<PropertyGroup Condition="'$(PublishAot)' == 'true'">
+		<!-- Optimize for size and performance -->
+		<OptimizationPreference>Size</OptimizationPreference>
+		<InvariantGlobalization>true</InvariantGlobalization>
+		
+		<!-- Include debugging info in the AOT binary -->
+		<StripSymbols>false</StripSymbols>
+		
+		<!-- Include native symbols for better debugging -->
+		<DebuggerSupport>true</DebuggerSupport>
+		
+		<!-- Reflection settings for AOT -->
+		<UseSystemResourceKeys>true</UseSystemResourceKeys>
+		<IlcGenerateStackTraceData>true</IlcGenerateStackTraceData>
+		<IlcDisableReflection>false</IlcDisableReflection>
+		<IlcFoldIdenticalMethodBodies>true</IlcFoldIdenticalMethodBodies>
+	</PropertyGroup>
 
 </Project>

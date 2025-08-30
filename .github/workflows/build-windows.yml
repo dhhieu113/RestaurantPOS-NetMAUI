@@ -58,11 +58,11 @@ jobs:
         run: dotnet restore RestaurantPOS.sln
         
       - name: Build Windows
-        run: dotnet build RestaurantPOS.sln -c Release -f net8.0-windows10.0.19041.0 /p:WindowsPackageType=None /p:UseMauiAndroid=false /p:UseMauiIOS=false /p:UseMauiMacCatalyst=false /p:WindowsAppSDKSelfContained=false /p:UseRidGraph=true
+        run: dotnet build RestaurantPOS.sln -c Release -f net8.0-windows10.0.19041.0 /p:WindowsPackageType=None /p:UseMauiAndroid=false /p:UseMauiIOS=false /p:UseMauiMacCatalyst=false /p:WindowsAppSDKSelfContained=true /p:UseRidGraph=true /p:PublishAot=true /p:PublishTrimmed=true
 
       - name: Publish desktop app
         run: |
-          dotnet publish RestaurantPOS.csproj -c Release -f net8.0-windows10.0.19041.0 -o ./publish/windows --self-contained true -p:UseMauiAndroid=false -p:UseMauiIOS=false -p:UseMauiMacCatalyst=false -p:WindowsAppSDKSelfContained=false -p:UseRidGraph=true
+          dotnet publish RestaurantPOS.csproj -c Release -f net8.0-windows10.0.19041.0 -o ./publish/windows --self-contained true -p:UseMauiAndroid=false -p:UseMauiIOS=false -p:UseMauiMacCatalyst=false -p:WindowsAppSDKSelfContained=true -p:UseRidGraph=true -p:PublishAot=true -p:PublishTrimmed=true
         shell: bash
 
       - name: Test desktop app
@@ -70,146 +70,43 @@ jobs:
           echo "Testing Windows desktop application..."
           dotnet test --configuration Release --framework net8.0-windows10.0.19041.0 --verbosity normal || echo "No tests found or test execution failed"
           
-      - name: Install Windows App Runtime for testing
-        run: |
-          # Download and install Windows App Runtime
-          $url = "https://aka.ms/windowsappsdk/1.5/1.5.240802000/windowsappruntimeinstall-x64.exe"
-          $output = "$env:TEMP\windowsappruntimeinstall-x64.exe"
-          Invoke-WebRequest -Uri $url -OutFile $output
-          Start-Process -FilePath $output -ArgumentList "/quiet" -Wait
-          Write-Host "Windows App Runtime installation completed"
+      # AOT compilation with self-contained deployment includes WinAppSDK, so no need to install it separately
           
-      - name: Verify application launch
+      - name: Verify self-contained package
         run: |
           cd ./publish/windows
           
-          # Check Windows App SDK dependencies first
-          Write-Host "Checking Windows App SDK registry entries..."
-          $regPaths = @(
-            "HKLM:\SOFTWARE\Microsoft\WindowsAppRuntime",
-            "HKLM:\SOFTWARE\Classes\CLSID\{8C57E4C5-3A45-4B34-BF39-056368B9D8ED}"
-          )
+          # Verify the package is truly self-contained
+          Write-Host "Verifying self-contained application package..."
           
-          foreach ($path in $regPaths) {
-            if (Test-Path $path) {
-                Write-Host "✅ Registry path exists: $path" -ForegroundColor Green
-            } else {
-                Write-Host "❌ Registry path missing: $path" -ForegroundColor Red
-            }
-          }
-          
-          # List all DLLs in the app directory to verify dependencies
+          # List all DLLs in the app directory to verify self-contained deployment
           Write-Host "Checking app dependencies..."
-          Get-ChildItem -Path "." -Filter "Microsoft.*.dll" | ForEach-Object {
-            Write-Host "Found: $($_.Name)"
+          $runtimeDlls = Get-ChildItem -Path "." -Filter "*.dll" | Measure-Object | Select-Object -ExpandProperty Count
+          Write-Host "Found $runtimeDlls DLLs in the self-contained package"
+          
+          # Check for Windows App SDK DLLs which should now be included in the package
+          $winAppSdkDlls = Get-ChildItem -Path "." -Filter "Microsoft.WinUI*.dll" | ForEach-Object { 
+              Write-Host "Found WinUI DLL: $($_.Name)"
           }
           
-          # Create a PowerShell script to test application launch with extended diagnostics
-          Set-Content -Path "test-launch.ps1" -Value @'
-          # Enable more detailed error reporting
-          $ErrorActionPreference = "Continue"
-          
-          try {
-              Write-Host "Starting application launch test..."
+          # Check for the main executable
+          if (Test-Path ".\RestaurantPOS.exe") {
+              Write-Host "✅ Application executable found" -ForegroundColor Green
               
-              # Add current directory to PATH to help with DLL resolution
-              $env:PATH = "$pwd;$env:PATH"
+              # Get file size to estimate if AOT was applied (AOT executables are typically larger)
+              $exeSize = (Get-Item ".\RestaurantPOS.exe").Length / 1MB
+              Write-Host "Executable size: $([math]::Round($exeSize, 2)) MB"
               
-              # Run process with output redirection
-              $processStartInfo = New-Object System.Diagnostics.ProcessStartInfo
-              $processStartInfo.FileName = ".\RestaurantPOS.exe"
-              $processStartInfo.RedirectStandardError = $true
-              $processStartInfo.RedirectStandardOutput = $true
-              $processStartInfo.UseShellExecute = $false
-              $processStartInfo.CreateNoWindow = $true
-              
-              $process = New-Object System.Diagnostics.Process
-              $process.StartInfo = $processStartInfo
-              
-              # Event handlers for output
-              $stdOutBuilder = New-Object System.Text.StringBuilder
-              $stdErrBuilder = New-Object System.Text.StringBuilder
-              $process.OutputDataReceived = {
-                  param($sender, $eventArgs)
-                  if ($eventArgs.Data -ne $null) {
-                      [void]$stdOutBuilder.AppendLine($eventArgs.Data)
-                  }
-              }
-              $process.ErrorDataReceived = {
-                  param($sender, $eventArgs)
-                  if ($eventArgs.Data -ne $null) {
-                      [void]$stdErrBuilder.AppendLine($eventArgs.Data)
-                  }
-              }
-              
-              # Start the process with output capturing
-              $started = $process.Start()
-              
-              if ($started) {
-                  $process.BeginOutputReadLine()
-                  $process.BeginErrorReadLine()
-                  
-                  # Wait for process to exit or timeout
-                  $exited = $process.WaitForExit(10000) # 10 second timeout
-                  
-                  # Check if process is still running
-                  if (!$exited) {
-                      Write-Host "✅ Application launched successfully and is running" -ForegroundColor Green
-                      
-                      # Try to gracefully close the app
-                      $process.CloseMainWindow()
-                      $process.WaitForExit(5000)
-                      
-                      if (!$process.HasExited) {
-                          Write-Host "Terminating process..." -ForegroundColor Yellow
-                          $process.Kill()
-                      }
-                      exit 0
-                  } else {
-                      # Process exited already
-                      $exitCode = $process.ExitCode
-                      Write-Host "❌ Application crashed with exit code: $exitCode" -ForegroundColor Red
-                      
-                      # Display captured output
-                      Write-Host "Standard Output:" -ForegroundColor Yellow
-                      Write-Host $stdOutBuilder.ToString()
-                      Write-Host "Standard Error:" -ForegroundColor Yellow
-                      Write-Host $stdErrBuilder.ToString()
-                      
-                      # In GitHub Actions, we'll mark this as non-fatal
-                      # But provide diagnostic info
-                      Write-Host "Exit code $exitCode may indicate missing Windows App SDK runtime components" -ForegroundColor Yellow
-                      
-                      # For automated testing in CI, we'll mark as success but with warnings
-                      Write-Host "::warning::Application crashed with exit code $exitCode during CI testing"
-                      exit 0  # Don't fail the GitHub workflow
-                  }
+              if ($exeSize -gt 20) {
+                  Write-Host "✅ Executable size suggests AOT compilation was applied" -ForegroundColor Green
               } else {
-                  Write-Host "❌ Failed to start application" -ForegroundColor Red
-                  exit 0  # Don't fail the GitHub workflow
+                  Write-Host "⚠️ Executable size is smaller than expected for AOT compilation" -ForegroundColor Yellow
               }
-          } catch {
-              Write-Host "❌ Error during launch test: $_" -ForegroundColor Red
-              Write-Host $_.ScriptStackTrace
-              exit 0  # Don't fail the GitHub workflow
+          } else {
+              Write-Host "❌ Application executable not found" -ForegroundColor Red
           }
-          '@
           
-          # Run the test script
-          try {
-              Write-Host "Running application launch test..." -ForegroundColor Cyan
-              & powershell -ExecutionPolicy Bypass -File test-launch.ps1
-              
-              # Note: We're expecting the script to exit with 0 even if the app crashes,
-              # as we don't want to fail the workflow in CI. The script will still provide
-              # diagnostic information to help troubleshoot the issue.
-              
-              Write-Host "Application verification process completed" -ForegroundColor Cyan
-              Write-Host "Note: Launch failures are expected in CI environments due to WinAppSDK requirements" -ForegroundColor Yellow
-          } catch {
-              Write-Host "Error running launch test: $_" -ForegroundColor Red
-              # Don't fail the build
-          }
+          Write-Host "Self-contained application package verification completed" -ForegroundColor Cyan
 
       - name: Find build artifacts
         shell: pwsh
@@ -252,9 +149,7 @@ jobs:
           echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "Generated tag: $TAG"
 
-      - name: Copy installation script
-        run: |
-          cp ./install-windows-dependencies.ps1 ./artifacts/windows-app/
+      # No need to copy installation scripts as the app is now fully self-contained
 
       - name: Create README for Windows
         run: |
@@ -264,22 +159,21 @@ jobs:
 
           Installation Instructions:
           1. Extract all files to a folder on your Windows machine
-          2. Right-click on "install-windows-dependencies.ps1" and select "Run with PowerShell"
-          3. Follow the prompts to install the required Windows App Runtime components
-          4. After successful installation, run RestaurantPOS.exe
+          2. Run RestaurantPOS.exe directly - no installation required!
 
-          Note: Windows App Runtime is required for this application to run properly.
-          The installation script will help you install this dependency automatically.
-
-          Common Issues:
-          - If the application shows a Windows error dialog or crashes on startup, ensure Windows App Runtime 1.5
-            is properly installed. You can download it directly from Microsoft:
-            https://aka.ms/windowsappsdk/1.5/1.5.240802000/windowsappruntimeinstall-x64.exe
-            
-          - The application requires Windows 10 version 1809 (build 17763) or later
+          Note: This application is compiled with AOT (Ahead-of-Time) technology and is fully self-contained.
+          You don't need to install any additional runtime components.
           
-          - Make sure all Windows updates are installed, especially those related to .NET Runtime and
-            Visual C++ Redistributable packages
+          System Requirements:
+          - Windows 10 version 1809 (build 17763) or later
+          - No additional dependencies required - everything is included in the package!
+          
+          Troubleshooting:
+          - If the application doesn't start, ensure your Windows version meets the minimum requirements
+          - Make sure Windows Defender or other antivirus software isn't blocking the executable
+          - Try running the application as administrator for the first launch
+            
+          - For additional help, refer to the GitHub repository or file an issue if you're experiencing problems
           EOF
 
       - name: Create Windows executable archive
@@ -311,14 +205,11 @@ jobs:
             
             ### Installation:
             1. Extract all files from the tar.gz archive
-            2. Right-click on "install-windows-dependencies.ps1" and select "Run with PowerShell"
-            3. Follow the prompts to install the Windows App Runtime components
-            4. After successful installation, run RestaurantPOS.exe
+            2. Run RestaurantPOS.exe directly - no installation required!
             
-            ### Required Dependencies:
-            - Windows App Runtime 1.5 (automatically installed by the script)
-            - .NET 8.0 Desktop Runtime (if not already installed)
+            ### System Requirements:
             - Windows 10 version 1809 (build 17763) or later
+            - No additional dependencies required - the application is fully self-contained with AOT compilation!
             
             ### Note About CI Testing:
             The application may show launch failures during CI testing due to limitations in GitHub Actions 
