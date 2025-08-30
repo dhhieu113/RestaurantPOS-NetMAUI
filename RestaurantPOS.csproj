@@ -1,9 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>net8.0-android;net8.0-ios;net8.0-maccatalyst</TargetFrameworks>
-		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net8.0-windows10.0.19041.0</TargetFrameworks>
-
+		<!-- Define platform-specific properties with default values -->
+		<UseMauiAndroid Condition="'$(UseMauiAndroid)' == ''">true</UseMauiAndroid>
+		<UseMauiIOS Condition="'$(UseMauiIOS)' == ''">true</UseMauiIOS>
+		<UseMauiMacCatalyst Condition="'$(UseMauiMacCatalyst)' == ''">true</UseMauiMacCatalyst>
+		<UseMauiWindows Condition="'$(UseMauiWindows)' == '' and $([MSBuild]::IsOSPlatform('windows'))">true</UseMauiWindows>
+		
+		<!-- Build the TargetFrameworks property based on the platform properties -->
+		<TargetFrameworks></TargetFrameworks>
+		<TargetFrameworks Condition="'$(UseMauiAndroid)' == 'true'">$(TargetFrameworks);net8.0-android</TargetFrameworks>
+		<TargetFrameworks Condition="'$(UseMauiIOS)' == 'true'">$(TargetFrameworks);net8.0-ios</TargetFrameworks>
+		<TargetFrameworks Condition="'$(UseMauiMacCatalyst)' == 'true'">$(TargetFrameworks);net8.0-maccatalyst</TargetFrameworks>
+		<TargetFrameworks Condition="'$(UseMauiWindows)' == 'true'">$(TargetFrameworks);net8.0-windows10.0.19041.0</TargetFrameworks>
+		
 		<!-- Note for MacCatalyst:
 		The default runtime is maccatalyst-x64, except in Release config, in which case the default is maccatalyst-x64;maccatalyst-arm64.
 		When specifying both architectures, use the plural <RuntimeIdentifiers> instead of the singular <RuntimeIdentifier>.
