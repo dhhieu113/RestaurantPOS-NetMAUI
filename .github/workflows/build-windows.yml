@@ -23,10 +23,8 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Install MAUI workloads
+      - name: Install Windows MAUI workloads
         run: |
-          dotnet workload install maui --ignore-failed-sources
-          dotnet workload install windows --ignore-failed-sources
           dotnet workload install maui-windows --ignore-failed-sources
           dotnet workload list
 
